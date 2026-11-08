@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * FirstShip design tokens — Direction A "Civic Editorial".
+ * Warm paper ground, serif display (Fraunces), Inter body,
+ * indigo as the action/verified colour, saffron as a sparing accent.
+ * All text colours pass WCAG AA on --color-paper and --color-card.
+ */
+@theme {
+  --color-paper: #f6f3ec;
+  --color-card: #fffdf8;
+  --color-sunk: #ede7da;
+  --color-ink: #1d1b17;
+  --color-ink-2: #4a453c;
+  --color-muted: #6b6458;
+  --color-quote: #5a544a;
+  --color-line: #ddd6c8;
+  --color-line-strong: #c9c0ad;
+  --color-indigo: #2e3a8c;
+  --color-indigo-deep: #1e2766;
+  --color-saffron: #c2570c;
+  --color-pass: #1f7a4d;
+  --color-fail: #a33a2a;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+  --font-deva: var(--font-noto-deva), "Noto Sans Devanagari", sans-serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-stamp: stamp 520ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  --animate-draw: draw 480ms 220ms ease-out both;
+  --animate-caret: caret 1s steps(1) infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes stamp {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes draw {
+    from { stroke-dashoffset: 24; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes caret {
+    50% { opacity: 0; }
   }
 }
 
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:lang(hi) {
+  font-family: var(--font-deva);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-indigo) 22%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-indigo);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
 }

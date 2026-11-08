@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FirstShip
 
-## Getting Started
+**A supervised first project for a real organisation.** An NGO describes a small
+technical task in its own words. An AI agent turns it into acceptance criteria
+and milestones. A beginner coder and a mentor are matched to it. The learner
+ships against a preview environment, the mentor reviews each criterion, and the
+NGO accepts the work. The result is a **verified work sample** that employers
+can inspect.
 
-First, run the development server:
+Code for a Billion hackathon 2026, Track 10: Tech Employment for Youth.
 
+> ~83% of India's unemployed are young people, and graduates are unemployed at
+> 29.1%, against 3.4% for people who cannot read or write
+> (ILO & IHD, *India Employment Report 2024*).
+
+## Run locally
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # NEXT_PUBLIC_API_MODE=mock uses the built-in seed data
+npm run dev                  # http://localhost:3000
 ```
+`POST /api/dev/reset` restores the seed data (mock mode only).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docs
+- [docs/API.md](docs/API.md): the API contract the backend implements
+- [docs/TEAM.md](docs/TEAM.md): who builds what, and the hand-off dates
+- [src/contract/schemas.ts](src/contract/schemas.ts): Zod schemas (source of truth)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Licence
+MIT

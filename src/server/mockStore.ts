@@ -2,102 +2,136 @@
  * In-memory mock backend. Implements the contract in src/contract/schemas.ts
  * so the frontend can be built before the real backend exists.
  *
- * NOT persistent: state resets on every server restart / serverless cold
- * start. The real pilot MUST run on Teammate A's backend.
+ * NOT persistent: state (including uploaded media) resets on every server
+ * restart / serverless cold start. The real pilot MUST run on the real backend.
  */
 import type {
   AcceptInput,
+  Commission,
+  CreateCommissionInput,
   CreateReviewInput,
   CreateSubmissionInput,
-  CreateTaskInput,
   ImpactStats,
   Match,
+  Media,
   Portfolio,
+  PortfolioItem,
   Review,
   Submission,
   TalentCard,
-  Task,
-  UpdateTaskInput,
+  UpdateCommissionInput,
   WorkSample,
 } from "@/contract/schemas";
 import { createSeed, type DB } from "./seed";
 
-const g = globalThis as unknown as { __firstshipDb?: DB };
-const db = (): DB => (g.__firstshipDb ??= createSeed());
+const g = globalThis as unknown as { __hunarDb?: DB; __hunarBlobs?: Map<string, { type: string; bytes: Uint8Array }> };
+const db = (): DB => (g.__hunarDb ??= createSeed());
+const blobs = () => (g.__hunarBlobs ??= new Map());
 
 export function resetDb() {
-  g.__firstshipDb = createSeed();
+  g.__hunarDb = createSeed();
+  g.__hunarBlobs = new Map();
 }
 
 export class NotFound extends Error {}
+/** Request is valid JSON but not allowed in the current state → 409. */
 export class BadState extends Error {}
+/** Request itself is unacceptable (e.g. wrong file type) → 400. */
+export class BadRequest extends Error {}
 
 const now = () => new Date().toISOString();
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`;
 
-/* ---------- Tasks ---------- */
+/* ---------- Commissions ---------- */
 
-export function listTasks(filter: { orgId?: string; learnerId?: string; mentorId?: string; status?: string } = {}): Task[] {
-  return db().tasks.filter(
-    (t) =>
-      (!filter.orgId || t.orgId === filter.orgId) &&
-      (!filter.learnerId || t.learnerId === filter.learnerId) &&
-      (!filter.mentorId || t.mentorId === filter.mentorId) &&
-      (!filter.status || t.status === filter.status),
+export function listCommissions(
+  filter: { employerId?: string; artistId?: string; guruId?: string; status?: string } = {},
+): Commission[] {
+  return db().commissions.filter(
+    (c) =>
+      (!filter.employerId || c.employerId === filter.employerId) &&
+      (!filter.artistId || c.artistId === filter.artistId) &&
+      (!filter.guruId || c.guruId === filter.guruId) &&
+      (!filter.status || c.status === filter.status),
   );
 }
 
-export function getTask(id: string): Task {
-  const t = db().tasks.find((x) => x.id === id);
-  if (!t) throw new NotFound(`Task ${id} not found`);
-  return t;
+export function getCommission(id: string): Commission {
+  const c = db().commissions.find((x) => x.id === id);
+  if (!c) throw new NotFound(`Commission ${id} not found`);
+  return c;
 }
 
-export function createTask(input: CreateTaskInput): Task {
-  if (!db().orgs.some((o) => o.id === input.orgId)) throw new NotFound(`Org ${input.orgId} not found`);
-  const task: Task = {
-    id: uid("t"),
-    orgId: input.orgId,
+export function createCommission(input: CreateCommissionInput): Commission {
+  const employer = db().employers.find((e) => e.id === input.employerId);
+  if (!employer) throw new NotFound(`Employer ${input.employerId} not found`);
+  const c: Commission = {
+    id: uid("c"),
+    employerId: input.employerId,
     title: input.title ?? input.rawRequest.slice(0, 60),
     rawRequest: input.rawRequest,
     status: "draft",
-    skills: [],
-    estHours: 1,
+    artFormIds: [],
+    estDays: 1,
+    feeInr: 0,
+    onSite: false,
+    city: employer.city,
     criteria: [],
     milestones: [],
     createdAt: now(),
   };
-  db().tasks.push(task);
-  return task;
+  db().commissions.push(c);
+  return c;
 }
 
-export function updateTask(id: string, patch: UpdateTaskInput): Task {
-  const t = getTask(id);
-  Object.assign(t, patch);
-  return t;
+export function updateCommission(id: string, patch: UpdateCommissionInput): Commission {
+  const c = getCommission(id);
+  Object.assign(c, patch);
+  return c;
 }
 
 /* ---------- Matching ---------- */
 
-export function listMatches(taskId?: string): Match[] {
-  return db().matches.filter((m) => !taskId || m.taskId === taskId).sort((a, b) => b.score - a.score);
+export function listMatches(commissionId?: string): Match[] {
+  return db()
+    .matches.filter((m) => !commissionId || m.commissionId === commissionId)
+    .sort((a, b) => b.score - a.score);
 }
 
 export function confirmMatch(matchId: string): Match {
   const m = db().matches.find((x) => x.id === matchId);
   if (!m) throw new NotFound(`Match ${matchId} not found`);
-  const task = getTask(m.taskId);
-  if (task.status !== "open") throw new BadState(`Task is ${task.status}, expected open`);
-  for (const other of db().matches) if (other.taskId === m.taskId && other.id !== m.id) other.status = "rejected";
+  const c = getCommission(m.commissionId);
+  if (c.status !== "open") throw new BadState(`Commission is ${c.status}, expected open`);
+  for (const other of db().matches) if (other.commissionId === m.commissionId && other.id !== m.id) other.status = "rejected";
   m.status = "confirmed";
-  Object.assign(task, { status: "matched", learnerId: m.learnerId, mentorId: m.mentorId });
+  Object.assign(c, { status: "matched", artistId: m.artistId, guruId: m.guruId });
   return m;
+}
+
+/* ---------- Media ---------- */
+
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+export function saveUpload(file: { type: string; bytes: Uint8Array }, meta: { stage: Media["stage"]; caption?: string }): Media {
+  const kind: Media["kind"] = file.type.startsWith("audio/") ? "audio" : file.type.startsWith("video/") ? "video" : "photo";
+  const id = uid("md");
+  blobs().set(id, file);
+  const media: Media = { id, kind, stage: meta.stage, url: `/api/media/${id}`, caption: meta.caption, createdAt: now() };
+  db().media.push(media);
+  return media;
+}
+
+export function getBlob(id: string) {
+  const b = blobs().get(id);
+  if (!b) throw new NotFound(`Media ${id} not found`);
+  return b;
 }
 
 /* ---------- Submissions & reviews ---------- */
 
-export function listSubmissions(taskId: string): Submission[] {
-  return db().submissions.filter((s) => s.taskId === taskId);
+export function listSubmissions(commissionId: string): Submission[] {
+  return db().submissions.filter((s) => s.commissionId === commissionId);
 }
 
 export function getSubmission(id: string): Submission {
@@ -107,138 +141,148 @@ export function getSubmission(id: string): Submission {
 }
 
 export function createSubmission(input: CreateSubmissionInput): Submission {
-  const task = getTask(input.taskId);
+  const c = getCommission(input.commissionId);
+  const media = input.mediaIds.map((id) => {
+    const m = db().media.find((x) => x.id === id);
+    if (!m) throw new NotFound(`Media ${id} not found`);
+    return m;
+  });
+  const voice = input.voiceNoteId ? db().media.find((x) => x.id === input.voiceNoteId) : undefined;
   const sub: Submission = {
     id: uid("s"),
-    ...input,
-    // Teammate B's GitHub integration fills these from the real PR + preview deploy.
-    previewUrl: undefined,
-    ciStatus: "pending",
-    commits: 0,
-    additions: 0,
-    deletions: 0,
-    merged: false,
+    commissionId: c.id,
+    milestoneId: input.milestoneId,
+    media,
+    note: input.note,
+    voiceNoteUrl: voice?.url,
     submittedAt: now(),
   };
   db().submissions.push(sub);
-  const ms = task.milestones.find((m) => m.id === input.milestoneId);
+  const ms = c.milestones.find((m) => m.id === input.milestoneId);
   if (ms) ms.status = "submitted";
-  task.status = "in_review";
+  c.status = "in_review";
   return sub;
 }
 
-export function listReviews(taskId: string): Review[] {
-  return db().reviews.filter((r) => r.taskId === taskId);
+export function listReviews(commissionId: string): Review[] {
+  return db().reviews.filter((r) => r.commissionId === commissionId);
 }
 
 export function createReview(input: CreateReviewInput): Review {
   const sub = getSubmission(input.submissionId);
-  const task = getTask(sub.taskId);
-  const review: Review = { id: uid("r"), taskId: task.id, reviewedAt: now(), ...input };
+  const c = getCommission(sub.commissionId);
+  const review: Review = { id: uid("r"), commissionId: c.id, reviewedAt: now(), ...input };
   db().reviews.push(review);
   const allPass = review.results.every((r) => r.verdict === "pass");
-  const ms = task.milestones.find((m) => m.id === sub.milestoneId);
+  const ms = c.milestones.find((m) => m.id === sub.milestoneId);
   if (ms) ms.status = allPass ? "done" : "doing";
-  task.status = allPass ? "in_review" : "in_progress"; // stays in_review until org accepts
+  c.status = allPass ? "in_review" : "in_progress"; // stays in_review until the employer accepts
   return review;
 }
 
-export function acceptTask(taskId: string, input: AcceptInput) {
-  const task = getTask(taskId);
-  if (!input.previewOpened) throw new BadState("Org must open the preview before accepting");
-  const latest = listReviews(taskId).at(-1);
-  if (!latest) throw new BadState("Task has no mentor review yet");
-  const acceptance = { taskId, acceptedAt: now(), ...input };
-  db().acceptances = db().acceptances.filter((a) => a.taskId !== taskId).concat(acceptance);
+export function acceptCommission(commissionId: string, input: AcceptInput) {
+  const c = getCommission(commissionId);
+  if (!input.workViewed) throw new BadState("Employer must view the final work before accepting");
+  const latest = listReviews(commissionId).at(-1);
+  if (!latest) throw new BadState("Commission has no guru review yet");
+  const acceptance = { commissionId, acceptedAt: now(), ...input };
+  db().acceptances = db().acceptances.filter((a) => a.commissionId !== commissionId).concat(acceptance);
   const verified = latest.results.every((r) => r.verdict === "pass");
-  task.status = verified ? "verified" : "accepted";
-  if (verified && !db().slugs[taskId]) {
-    db().slugs[taskId] = `fs-${String(Object.keys(db().slugs).length + 1).padStart(4, "0")}`;
+  c.status = verified ? "verified" : "accepted";
+  if (verified && !db().slugs[commissionId]) {
+    db().slugs[commissionId] = `hp-${String(Object.keys(db().slugs).length + 1).padStart(4, "0")}`;
   }
-  return { acceptance, slug: db().slugs[taskId] ?? null };
+  return { acceptance, slug: db().slugs[commissionId] ?? null };
 }
 
 /* ---------- Read models ---------- */
 
+const person = (id?: string) => {
+  const p = db().people.find((x) => x.id === id);
+  if (!p) throw new NotFound(`Person ${id} not found`);
+  return p;
+};
+
+/** The piece to show first: final photo/video/audio, else the latest process media. */
+function cover(commissionId: string): Media | undefined {
+  const all = listSubmissions(commissionId).flatMap((s) => s.media);
+  return all.filter((m) => m.stage === "final").at(-1) ?? all.at(-1);
+}
+
 export function getWorkSample(slug: string): WorkSample {
-  const taskId = Object.entries(db().slugs).find(([, s]) => s === slug)?.[0];
-  if (!taskId) throw new NotFound(`Work sample ${slug} not found`);
-  const task = getTask(taskId);
-  const person = (id?: string) => {
-    const p = db().people.find((x) => x.id === id);
-    if (!p) throw new NotFound(`Person ${id} not found`);
-    return p;
-  };
-  const org = db().orgs.find((o) => o.id === task.orgId)!;
-  const submissions = listSubmissions(taskId);
-  const review = listReviews(taskId).at(-1)!;
-  const acceptance = db().acceptances.find((a) => a.taskId === taskId)!;
+  const commissionId = Object.entries(db().slugs).find(([, s]) => s === slug)?.[0];
+  if (!commissionId) throw new NotFound(`Work sample ${slug} not found`);
+  const commission = getCommission(commissionId);
   return {
     slug,
-    task,
-    org,
-    learner: person(task.learnerId),
-    mentor: person(task.mentorId),
-    submissions,
-    review,
-    acceptance,
-    liveUrl: submissions.at(-1)?.previewUrl,
+    commission,
+    employer: db().employers.find((e) => e.id === commission.employerId)!,
+    artist: person(commission.artistId),
+    guru: person(commission.guruId),
+    submissions: listSubmissions(commissionId),
+    review: listReviews(commissionId).at(-1)!,
+    acceptance: db().acceptances.find((a) => a.commissionId === commissionId)!,
   };
 }
 
-const avg = (r: Review) => (r.rubric.codeQuality + r.rubric.communication + r.rubric.timeliness) / 3;
+const avg = (r: Review) => (r.rubric.craft + r.rubric.tradition + r.rubric.timeliness) / 3;
 
-export function getPortfolio(login: string): Portfolio {
-  const person = db().people.find((p) => p.githubLogin === login);
-  if (!person) throw new NotFound(`Person ${login} not found`);
-  const samples = Object.entries(db().slugs)
-    .map(([taskId, slug]) => ({ task: getTask(taskId), slug }))
-    .filter(({ task }) => task.learnerId === person.id)
-    .map(({ task, slug }) => {
-      const review = listReviews(task.id).at(-1)!;
-      const acc = db().acceptances.find((a) => a.taskId === task.id)!;
+export function getPortfolio(handle: string): Portfolio {
+  const p = db().people.find((x) => x.handle === handle);
+  if (!p) throw new NotFound(`Person ${handle} not found`);
+  const samples: PortfolioItem[] = Object.entries(db().slugs)
+    .map(([commissionId, slug]) => ({ c: getCommission(commissionId), slug }))
+    .filter(({ c }) => c.artistId === p.id)
+    .map(({ c, slug }) => {
+      const review = listReviews(c.id).at(-1)!;
+      const acc = db().acceptances.find((a) => a.commissionId === c.id)!;
+      const cv = cover(c.id);
       return {
         slug,
-        title: task.title,
-        orgName: db().orgs.find((o) => o.id === task.orgId)!.name,
-        shippedAt: acc.acceptedAt,
-        skills: task.skills,
+        title: c.title,
+        employerName: db().employers.find((e) => e.id === c.employerId)!.name,
+        completedAt: acc.acceptedAt,
+        artFormIds: c.artFormIds,
         avgScore: Math.round(avg(review) * 10) / 10,
+        coverUrl: cv?.url,
+        coverKind: cv?.kind,
       };
     });
-  return { person, samples };
+  return { person: p, samples };
 }
 
 export function getImpact(): ImpactStats {
-  const { tasks, orgs, acceptances, submissions, reviews } = db();
-  const verified = tasks.filter((t) => t.status === "verified");
+  const { commissions, acceptances, submissions, reviews } = db();
+  const done = commissions.filter((c) => c.status === "verified" || c.status === "accepted");
+  const title = (id: string) => getCommission(id).title;
   const events: ImpactStats["events"] = [
-    ...tasks.map((t) => ({ at: t.createdAt, kind: "task_posted" as const, label: `Task posted: ${t.title}` })),
-    ...submissions.map((s) => ({ at: s.submittedAt, kind: "submitted" as const, label: `Work submitted for ${getTask(s.taskId).title}` })),
-    ...reviews.map((r) => ({ at: r.reviewedAt, kind: "reviewed" as const, label: `Mentor reviewed ${getTask(r.taskId).title}` })),
-    ...acceptances.map((a) => ({ at: a.acceptedAt, kind: "accepted" as const, label: `NGO accepted ${getTask(a.taskId).title}` })),
+    ...commissions.map((c) => ({ at: c.createdAt, kind: "commission_posted" as const, label: `Commission posted: ${c.title}` })),
+    ...submissions.map((s) => ({ at: s.submittedAt, kind: "submitted" as const, label: `Work shared for ${title(s.commissionId)}` })),
+    ...reviews.map((r) => ({ at: r.reviewedAt, kind: "reviewed" as const, label: `Guru reviewed ${title(r.commissionId)}` })),
+    ...acceptances.map((a) => ({ at: a.acceptedAt, kind: "accepted" as const, label: `Employer accepted ${title(a.commissionId)}` })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   return {
-    orgsServed: new Set(tasks.map((t) => t.orgId)).size || orgs.length,
-    tasksPosted: tasks.length,
-    tasksShipped: verified.length,
-    learnersVerified: new Set(verified.map((t) => t.learnerId)).size,
-    orgHoursSaved: verified.reduce((n, t) => n + t.estHours, 0),
+    employersServed: new Set(commissions.map((c) => c.employerId)).size,
+    commissionsPosted: commissions.length,
+    commissionsCompleted: done.length,
+    artistsVerified: new Set(commissions.filter((c) => c.status === "verified").map((c) => c.artistId)).size,
+    artistEarningsInr: done.reduce((n, c) => n + c.feeInr, 0),
     events: events.slice(0, 20),
   };
 }
 
-export function getTalent(skill?: string): TalentCard[] {
+export function getTalent(artFormId?: string): TalentCard[] {
   return db()
-    .people.filter((p) => p.role === "learner")
-    .map((person) => ({ person, portfolio: getPortfolio(person.githubLogin!) }))
+    .people.filter((p) => p.role === "artist" && p.handle)
+    .filter((p) => !artFormId || p.artFormIds.includes(artFormId))
+    .map((p) => ({ p, portfolio: getPortfolio(p.handle!) }))
     .filter(({ portfolio }) => portfolio.samples.length > 0)
-    .filter(({ person }) => !skill || person.skills.some((s) => s.toLowerCase() === skill.toLowerCase()))
-    .map(({ person, portfolio }) => ({
-      person,
+    .map(({ p, portfolio }) => ({
+      person: p,
       verifiedCount: portfolio.samples.length,
       avgScore: portfolio.samples.reduce((n, s) => n + s.avgScore, 0) / portfolio.samples.length,
       topSampleSlug: portfolio.samples[0].slug,
+      coverUrl: portfolio.samples[0].coverKind === "photo" ? portfolio.samples[0].coverUrl : undefined,
     }));
 }
 

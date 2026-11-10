@@ -2,19 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { Criterion, DraftSpecEvent, Milestone } from "@/contract/schemas";
-import { CheckCircleDraw, ChevronLeft, Pencil, Sparkle, Trash } from "@/components/icons";
-import { api, streamDraftSpec } from "@/lib/api";
-import { DEMO_ORG_ID } from "@/lib/demo";
-import { orgStrings, type Lang } from "@/i18n/org";
+import { artFormName } from "@/contract/artForms";
+import type { Criterion, DraftBriefEvent, Milestone } from "@/contract/schemas";
+import { CheckCircleDraw, ChevronLeft, MapPin, Pencil, Sparkle, Trash } from "@/components/icons";
+import { api, streamDraftBrief } from "@/lib/api";
+import { DEMO_EMPLOYER_ID } from "@/lib/demo";
+import { formatInr } from "@/lib/format";
+import { employerStrings, type EmployerStrings, type Lang } from "@/i18n/employer";
 import { useLang } from "@/i18n/use-lang";
 
 type Item = Criterion & { streaming: boolean; editing: boolean };
 type Step = 1 | 2 | 3;
+type Meta = { artFormIds: string[]; estDays: number; suggestedFeeInr: number; onSite: boolean };
 
-export function NewTaskFlow() {
+export function NewCommissionFlow() {
   const [lang, setLang] = useLang();
-  const t = orgStrings[lang];
+  const t = employerStrings[lang];
 
   const [step, setStep] = useState<Step>(1);
   const [raw, setRaw] = useState("");
@@ -22,36 +25,38 @@ export function NewTaskFlow() {
   const [title, setTitle] = useState("");
   const [items, setItems] = useState<Item[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [meta, setMeta] = useState<{ skills: string[]; estHours: number }>({ skills: [], estHours: 1 });
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [fee, setFee] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
-  const [published, setPublished] = useState<{ id: string; n: number; hours: number } | null>(null);
+  const [published, setPublished] = useState<{ n: number; days: number; fee: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const tooShort = raw.trim().length < 10;
 
-  function onEvent(e: DraftSpecEvent) {
+  function onEvent(e: DraftBriefEvent) {
     switch (e.type) {
       case "title":
         setTitle(e.title);
         break;
       case "criterion_start":
-        setItems((xs) => [...xs, { id: e.id, text: "", testable: true, aiGenerated: true, approved: false, streaming: true, editing: false }]);
+        setItems((xs) => [...xs, { id: e.id, text: "", aiGenerated: true, approved: false, streaming: true, editing: false }]);
         break;
       case "criterion_delta":
         setItems((xs) => xs.map((x) => (x.id === e.id ? { ...x, text: x.text + e.text } : x)));
         break;
       case "criterion_end":
-        setItems((xs) => xs.map((x) => (x.id === e.id ? { ...x, text: x.text.trim(), testable: e.testable, streaming: false } : x)));
+        setItems((xs) => xs.map((x) => (x.id === e.id ? { ...x, text: x.text.trim(), streaming: false } : x)));
         break;
       case "milestone":
         setMilestones((ms) => [...ms, e.milestone]);
         break;
       case "meta":
-        setMeta({ skills: e.skills, estHours: e.estHours });
+        setMeta({ artFormIds: e.artFormIds, estDays: e.estDays, suggestedFeeInr: e.suggestedFeeInr, onSite: e.onSite });
+        setFee(String(e.suggestedFeeInr));
         break;
       case "error":
         setError(t.errorDraft);
@@ -68,10 +73,11 @@ export function NewTaskFlow() {
     setStep(2);
     setItems([]);
     setMilestones([]);
+    setMeta(null);
     setError(null);
     setDrafting(true);
     try {
-      await streamDraftSpec(raw.trim(), onEvent, ctrl.signal);
+      await streamDraftBrief(raw.trim(), onEvent, ctrl.signal);
     } catch (err) {
       if ((err as Error).name !== "AbortError") setError(t.errorDraft);
     } finally {
@@ -85,13 +91,11 @@ export function NewTaskFlow() {
     setMilestones((ms) => ms.map((m) => ({ ...m, criterionIds: m.criterionIds.filter((c) => c !== id) })));
   };
   const add = () =>
-    setItems((xs) => [
-      ...xs,
-      { id: `u${Date.now()}`, text: "", testable: true, aiGenerated: false, approved: true, streaming: false, editing: true },
-    ]);
+    setItems((xs) => [...xs, { id: `u${Date.now()}`, text: "", aiGenerated: false, approved: true, streaming: false, editing: true }]);
 
   const finished = items.filter((x) => !x.streaming && x.text.trim());
   const approved = finished.filter((x) => x.approved);
+  const feeInr = Math.max(0, Math.round(Number(fee) || 0));
 
   async function publish() {
     if (!approved.length) return;
@@ -99,19 +103,21 @@ export function NewTaskFlow() {
     setError(null);
     try {
       const ids = new Set(approved.map((x) => x.id));
-      // The agent estimated hours for every drafted criterion; scale to what the NGO kept.
-      const estHours = Math.max(1, Math.round((meta.estHours * approved.length) / Math.max(1, finished.length)));
-      const task = await api.tasks.create({ orgId: DEMO_ORG_ID, rawRequest: raw.trim(), title: title || undefined });
-      await api.tasks.update(task.id, {
+      const kept = milestones
+        .map((m) => ({ ...m, criterionIds: m.criterionIds.filter((c) => ids.has(c)) }))
+        .filter((m) => m.criterionIds.length);
+      const estDays = kept.reduce((n, m) => n + m.estDays, 0) || meta?.estDays || 1;
+      const c = await api.commissions.create({ employerId: DEMO_EMPLOYER_ID, rawRequest: raw.trim(), title: title || undefined });
+      await api.commissions.update(c.id, {
         status: "open",
-        skills: meta.skills,
-        estHours,
-        criteria: approved.map(({ id, text, testable, aiGenerated }) => ({ id, text: text.trim(), testable, aiGenerated, approved: true })),
-        milestones: milestones
-          .map((m) => ({ ...m, criterionIds: m.criterionIds.filter((c) => ids.has(c)) }))
-          .filter((m) => m.criterionIds.length),
+        artFormIds: meta?.artFormIds ?? [],
+        onSite: meta?.onSite ?? false,
+        estDays,
+        feeInr,
+        criteria: approved.map(({ id, text, aiGenerated }) => ({ id, text: text.trim(), aiGenerated, approved: true })),
+        milestones: kept,
       });
-      setPublished({ id: task.id, n: approved.length, hours: estHours });
+      setPublished({ n: approved.length, days: estDays, fee: feeInr });
       setStep(3);
     } catch {
       setError(t.errorPublish);
@@ -127,6 +133,7 @@ export function NewTaskFlow() {
     setTouched(false);
     setItems([]);
     setMilestones([]);
+    setMeta(null);
     setPublished(null);
     setError(null);
   }
@@ -143,7 +150,7 @@ export function NewTaskFlow() {
             <ChevronLeft />
           </Link>
         )}
-        <span className="font-serif text-[19px] font-semibold">{t.newTask}</span>
+        <span className="font-serif text-[19px] font-semibold">{t.newCommission}</span>
         <LangToggle lang={lang} setLang={setLang} />
       </header>
 
@@ -168,9 +175,7 @@ export function NewTaskFlow() {
                 aria-describedby={touched && tooShort ? "raw-err" : undefined}
                 className="w-full resize-y rounded-xl border border-line-strong bg-card px-4 py-3 text-base leading-normal placeholder:text-muted/80 focus:border-indigo focus:outline-none"
               />
-              {touched && tooShort && (
-                <span id="raw-err" className="text-[14px] text-fail">{t.s1TooShort}</span>
-              )}
+              {touched && tooShort && <span id="raw-err" className="text-[14px] text-fail">{t.s1TooShort}</span>}
             </label>
           </>
         )}
@@ -187,7 +192,7 @@ export function NewTaskFlow() {
               <blockquote className="m-0 font-serif text-base leading-[1.45] italic">“{raw.trim()}”</blockquote>
             </figure>
 
-            <div className="flex items-center justify-between gap-3 text-[13px] text-ink-2">
+            <div className="flex min-h-11 items-center justify-between gap-3 text-[13px] text-ink-2">
               <span className="flex items-center gap-2" aria-live="polite">
                 <Sparkle className="text-saffron" />
                 {drafting ? t.agentWorking : t.agentNote}
@@ -237,6 +242,36 @@ export function NewTaskFlow() {
               </div>
             )}
 
+            {meta && (
+              <div className="flex animate-rise flex-col gap-3 rounded-xl border border-line bg-card p-4">
+                {meta.artFormIds.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 text-[14px]">
+                    <span className="font-semibold text-muted">{t.artForms}:</span>
+                    {meta.artFormIds.map((id) => (
+                      <span key={id} className="rounded-full bg-sunk px-2.5 py-1">{artFormName(id, lang)}</span>
+                    ))}
+                  </div>
+                )}
+                <p className="m-0 flex items-center gap-1.5 text-[14px] text-ink-2">
+                  <MapPin className="flex-none text-saffron" /> {meta.onSite ? t.onSite : t.remote}
+                </p>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[13px] font-semibold text-muted">{t.feeLabel}</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={500}
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
+                    aria-describedby="fee-hint"
+                    className="h-12 rounded-lg border border-line-strong bg-paper px-3 text-lg font-semibold focus:border-indigo focus:outline-none"
+                  />
+                  <span id="fee-hint" className="text-[13px] text-muted">{t.feeHint(formatInr(meta.suggestedFeeInr))}</span>
+                </label>
+              </div>
+            )}
+
             {error && <p role="alert" className="m-0 rounded-lg bg-[#f6e3de] px-3 py-2.5 text-[14px] text-fail">{error}</p>}
           </>
         )}
@@ -248,7 +283,7 @@ export function NewTaskFlow() {
             </span>
             <h1 className="m-0 font-serif text-[30px] leading-[1.15] font-semibold">{t.s3Title}</h1>
             <p className="m-0 text-[15px] font-semibold">{title}</p>
-            <p className="m-0 text-[15px] text-muted">{t.s3Summary(published.n, published.hours)}</p>
+            <p className="m-0 text-[15px] text-muted">{t.s3Summary(published.n, published.days, formatInr(published.fee))}</p>
             <p className="m-0 text-base leading-normal text-ink-2">{t.s3Body}</p>
           </div>
         )}
@@ -273,7 +308,7 @@ export function NewTaskFlow() {
         {step === 3 && (
           <>
             <PrimaryButton onClick={reset}>{t.s3Another}</PrimaryButton>
-            <Link href="/org" className="flex min-h-11 items-center justify-center text-[15px] font-medium text-indigo">
+            <Link href="/employer" className="flex min-h-11 items-center justify-center text-[15px] font-medium text-indigo">
               {t.s3View}
             </Link>
           </>
@@ -294,7 +329,7 @@ function CriterionRow({
 }: {
   item: Item;
   index: number;
-  t: (typeof orgStrings)["en"];
+  t: EmployerStrings;
   onToggle: () => void;
   onEdit: () => void;
   onSave: (text: string) => void;
@@ -351,13 +386,7 @@ function CriterionRow({
 
   return (
     <li className="flex animate-rise items-start gap-3 rounded-xl border border-line bg-card p-3">
-      <input
-        type="checkbox"
-        checked={item.approved}
-        onChange={onToggle}
-        aria-label={t.approve(index)}
-        className="mt-px size-[22px] flex-none accent-indigo"
-      />
+      <input type="checkbox" checked={item.approved} onChange={onToggle} aria-label={t.approve(index)} className="mt-px size-[22px] flex-none accent-indigo" />
       <span className="flex-1 text-[15px] leading-[1.4]">
         {item.text}
         {!item.aiGenerated && <span className="sr-only"> (added by you)</span>}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lang } from "./org";
+import type { Lang } from "./employer";
 
-const KEY = "firstship.lang";
+const KEY = "hunarproof.lang";
 
 /** Per-viewer language preference; storage may be unavailable, so never rely on it. */
 export function useLang(): [Lang, (l: Lang) => void] {

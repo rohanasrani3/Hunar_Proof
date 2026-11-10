@@ -82,12 +82,47 @@ export function ArrowUpRight({ size = 16, strokeWidth = 2, ...rest }: P) {
   );
 }
 
+/** Hunar Proof mark: a kolam-style dot grid inside a seal, one stroke looping through it. */
 export function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <rect x="1" y="1" width="26" height="26" rx="7" stroke="var(--color-indigo)" strokeWidth="2" />
-      <path d="M8 17l6-8 6 8" stroke="var(--color-saffron)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 21h12" stroke="var(--color-indigo)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="14" cy="14" r="12.5" stroke="var(--color-indigo)" strokeWidth="2" />
+      <path
+        d="M14 6.5c3 0 4 2.5 4 4s2.5 3.5 2.5 3.5-2.5 2-2.5 3.5-1 4-4 4-4-2.5-4-4-2.5-3.5-2.5-3.5 2.5-2 2.5-3.5 1-4 4-4z"
+        stroke="var(--color-saffron)"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="14" cy="10.5" r="1.3" fill="var(--color-indigo)" />
+      <circle cx="10.5" cy="14" r="1.3" fill="var(--color-indigo)" />
+      <circle cx="17.5" cy="14" r="1.3" fill="var(--color-indigo)" />
+      <circle cx="14" cy="17.5" r="1.3" fill="var(--color-indigo)" />
+    </svg>
+  );
+}
+
+export function Play({ size = 18, ...rest }: P) {
+  return (
+    <svg {...base(size, rest)} strokeWidth={2}>
+      <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function Speaker({ size = 18, strokeWidth = 2, ...rest }: P) {
+  return (
+    <svg {...base(size, rest)} strokeWidth={strokeWidth}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" />
+      <path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" />
+    </svg>
+  );
+}
+
+export function MapPin({ size = 16, strokeWidth = 2, ...rest }: P) {
+  return (
+    <svg {...base(size, rest)} strokeWidth={strokeWidth}>
+      <path d="M12 21s7-6.2 7-11.5A7 7 0 005 9.5C5 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
     </svg>
   );
 }

@@ -19,9 +19,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
   ),
-  title: { default: "FirstShip — your first project, shipped for real", template: "%s · FirstShip" },
+  title: { default: "Hunar Proof — skill you can see, work employers can trust", template: "%s · Hunar Proof" },
   description:
-    "Beginner coders ship supervised projects for real NGOs and earn verified work samples employers can inspect.",
+    "Folk painters, musicians, dancers and craftspeople complete paid commissions, reviewed by a guru and accepted by the employer, and earn verified work records employers can trust.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

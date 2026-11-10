@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
-import { BadState, NotFound } from "./mockStore";
+import { BadRequest, BadState, NotFound } from "./mockStore";
 
 /** Wraps a route handler: maps contract/store errors to the standard ApiError body. */
 export async function handle(fn: () => unknown | Promise<unknown>, status = 200) {
@@ -8,6 +8,7 @@ export async function handle(fn: () => unknown | Promise<unknown>, status = 200)
     return NextResponse.json(await fn(), { status });
   } catch (e) {
     if (e instanceof ZodError) return NextResponse.json({ error: "Invalid input", details: e.issues }, { status: 400 });
+    if (e instanceof BadRequest) return NextResponse.json({ error: e.message }, { status: 400 });
     if (e instanceof NotFound) return NextResponse.json({ error: e.message }, { status: 404 });
     if (e instanceof BadState) return NextResponse.json({ error: e.message }, { status: 409 });
     console.error(e);

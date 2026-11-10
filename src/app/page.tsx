@@ -1,27 +1,30 @@
 import Link from "next/link";
+import { CATEGORIES } from "@/contract/artForms";
 import { DemoBanner } from "@/components/demo-banner";
 import { SiteHeader } from "@/components/site-header";
+import { formatInr } from "@/lib/format";
 import { getServerApi } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const ILO_URL = "https://oldwebsite.ihdindia.org/pdf/India-Employment-web-22-April.pdf";
+// CCI–IHD, "Economics of Indian Craft" (2026), as reported by Garland Magazine.
+const SOURCE_URL = "https://garlandmag.com/article/high-cultural-value-low-artisan-income/";
 
 const STEPS = [
   {
     n: "1",
-    title: "An NGO describes a small task",
-    body: "In its own words, in Hindi or English. The FirstShip agent turns it into acceptance criteria and milestones the NGO approves.",
+    title: "An employer describes what they need",
+    body: "A café wants a Warli mural, a hotel wants a folk band, a brand wants block-printed gifts. The Hunar Proof agent turns it into a clear brief with a fair fee.",
   },
   {
     n: "2",
-    title: "A learner ships it with a mentor",
-    body: "We match a beginner coder and an experienced mentor. Every change gets a preview the NGO can try before anything goes live.",
+    title: "An artist makes it, a guru guides it",
+    body: "We match a skilled artist with a guru, a master of the same art form. The artist shares photos, recordings and videos from the phone as the work takes shape.",
   },
   {
     n: "3",
     title: "The work becomes proof",
-    body: "The mentor checks each criterion, the NGO accepts, and the learner gets a public, verified work sample employers can inspect.",
+    body: "The guru checks each point of the brief, the employer accepts, and the artist gets a public, verified record that the next employer can trust.",
   },
 ];
 
@@ -36,20 +39,26 @@ export default async function Home() {
       <SiteHeader />
       <main>
         <section className="mx-auto max-w-[1120px] px-4 pt-14 pb-16 sm:px-8 sm:pt-20">
-          <h1 className="m-0 max-w-[820px] animate-rise font-serif text-[44px] leading-[1.04] font-semibold tracking-[-0.02em] text-balance sm:text-[68px]">
-            Your first project, shipped for real.
+          <h1 className="m-0 max-w-[880px] animate-rise font-serif text-[44px] leading-[1.04] font-semibold tracking-[-0.02em] text-balance sm:text-[68px]">
+            Skill you can see. Work employers can trust.
           </h1>
-          <p className="m-0 mt-6 max-w-[620px] text-lg leading-relaxed text-ink-2">
-            Small NGOs need technical help. Beginner coders need real experience. FirstShip turns one into the other,
-            with a mentor checking every step.
+          <p className="m-0 mt-6 max-w-[640px] text-lg leading-relaxed text-ink-2">
+            India’s folk painters, musicians, dancers and craftspeople are judged by certificates they never had a chance
+            to earn. Hunar Proof lets them prove their skill on real, paid work, checked by a guru and accepted by the
+            employer.
           </p>
+          <ul className="m-0 mt-6 flex list-none flex-wrap gap-2 p-0 text-[14px]">
+            {Object.values(CATEGORIES).map((c) => (
+              <li key={c.en} className="rounded-full bg-sunk px-3 py-1.5 text-ink-2">{c.en}</li>
+            ))}
+          </ul>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/org/tasks/new" className="rounded-full bg-indigo px-6 py-3.5 font-medium text-white hover:bg-indigo-deep">
-              Post a task for your NGO
+            <Link href="/employer/commissions/new" className="rounded-full bg-indigo px-6 py-3.5 font-medium text-white hover:bg-indigo-deep">
+              Commission an artist
             </Link>
             {sampleSlug && (
               <Link href={`/w/${sampleSlug}`} className="rounded-full border border-line-strong px-6 py-3.5 font-medium text-ink hover:bg-sunk">
-                See a verified work sample
+                See verified work
               </Link>
             )}
           </div>
@@ -58,13 +67,13 @@ export default async function Home() {
         <section aria-labelledby="problem-h" className="border-y border-line bg-card">
           <div className="mx-auto grid max-w-[1120px] gap-10 px-4 py-12 sm:grid-cols-[1fr_1fr_1.2fr] sm:px-8">
             <h2 id="problem-h" className="sr-only">The problem</h2>
-            <Stat value="83%" label="of India’s unemployed are young people" />
-            <Stat value="29.1%" label="of graduates are unemployed, against 3.4% of people who cannot read or write" />
+            <Stat value="₹7,000" label="average monthly earnings of handloom and handicraft workers" />
+            <Stat value="61 lakh" label="people work in handloom and handicraft in just five surveyed states" />
             <p className="m-0 self-center font-serif text-xl leading-snug italic text-quote">
-              “No experience, no job. No job, no experience.” FirstShip breaks that loop with work that is real, reviewed and
-              accepted.
-              <a href={ILO_URL} target="_blank" rel="noreferrer" className="mt-3 block font-sans text-[13px] not-italic text-muted underline">
-                Source: ILO &amp; IHD, India Employment Report 2024
+              Talent isn’t the problem. Proof is. An employer can’t ask a Warli painter for a degree, so they hire nobody,
+              or pay the least they can.
+              <a href={SOURCE_URL} target="_blank" rel="noreferrer" className="mt-3 block font-sans text-[13px] not-italic text-muted underline">
+                Source: Crafts Council of India &amp; IHD, Economics of Indian Craft (2026)
               </a>
             </p>
           </div>
@@ -90,16 +99,16 @@ export default async function Home() {
               <Link href="/impact" className="font-medium text-[#c9cdf0] hover:text-white">Full impact record →</Link>
             </div>
             <dl className="m-0 mt-8 grid grid-cols-2 gap-8 sm:grid-cols-4">
-              <Counter value={impact.tasksShipped} label="tasks shipped" />
-              <Counter value={impact.learnersVerified} label="learners with verified work" />
-              <Counter value={impact.orgHoursSaved} label="hours of work delivered" />
-              <Counter value={impact.orgsServed} label="organisations served" />
+              <Counter value={formatInr(impact.artistEarningsInr)} label="earned by artists" />
+              <Counter value={impact.commissionsCompleted} label="commissions completed" />
+              <Counter value={impact.artistsVerified} label="artists with verified work" />
+              <Counter value={impact.employersServed} label="employers served" />
             </dl>
           </div>
         </section>
       </main>
       <footer className="mx-auto max-w-[1120px] px-4 py-10 text-[14px] text-muted sm:px-8">
-        Open source (MIT). Built for Code for a Billion 2026, Track 10: Tech Employment for Youth.
+        Open source (MIT). Built for Code for a Billion 2026, Track 9: Livelihood for the Uneducated.
       </footer>
     </>
   );
@@ -114,11 +123,11 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function Counter({ value, label }: { value: number; label: string }) {
+function Counter({ value, label }: { value: number | string; label: string }) {
   return (
-    <div>
-      <dd className="m-0 font-serif text-[48px] leading-none font-semibold">{value}</dd>
+    <div className="flex flex-col-reverse">
       <dt className="mt-2 text-[15px] text-[#d9d4c7]">{label}</dt>
+      <dd className="m-0 font-serif text-[40px] leading-none font-semibold sm:text-[48px]">{value}</dd>
     </div>
   );
 }

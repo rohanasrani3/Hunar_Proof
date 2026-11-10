@@ -1,7 +1,12 @@
 /**
- * FirstShip API contract — the single source of truth shared by frontend,
+ * Hunar Proof API contract — the single source of truth shared by frontend,
  * backend and AI services. Every API response is parsed with these schemas
  * on the client (see src/lib/api.ts), so any drift fails loudly.
+ *
+ * Domain: an employer (café, hotel, event organiser, brand…) commissions a
+ * piece of regional art, music, dance or craft. An artist makes it, a guru
+ * (master practitioner of the same form) reviews it, the employer accepts it,
+ * and the result is a public, verified work sample other employers can trust.
  *
  * Changing a schema? Tell the whole team — it is a breaking change.
  */
@@ -9,55 +14,74 @@ import { z } from "zod";
 
 export const Id = z.string().min(1);
 export const IsoDate = z.string().datetime({ offset: true });
+/** Absolute URL or a same-site path such as /seed/x.svg or /api/media/abc. */
+export const MediaUrl = z.string().min(1);
+export const ArtFormId = z.string().min(1); // see src/contract/artForms.ts
 
-/* ---------- People & orgs ---------- */
+/* ---------- People & employers ---------- */
 
-export const Role = z.enum(["learner", "mentor", "org", "admin", "employer"]);
+export const Role = z.enum(["artist", "guru", "employer", "admin"]);
 export type Role = z.infer<typeof Role>;
 
-export const Org = z.object({
+export const Employer = z.object({
   id: Id,
   name: z.string(),
-  kind: z.string(), // e.g. "NGO", "School", "Community group"
+  kind: z.string(), // e.g. "Café", "Hotel", "Event organiser", "Brand", "NGO"
+  city: z.string(),
   contactName: z.string(),
-  city: z.string().optional(),
-  logoUrl: z.string().url().optional(),
 });
-export type Org = z.infer<typeof Org>;
+export type Employer = z.infer<typeof Employer>;
 
 export const Person = z.object({
   id: Id,
   role: Role,
   name: z.string(),
-  githubLogin: z.string().optional(),
-  avatarUrl: z.string().url().optional(),
-  skills: z.array(z.string()),
-  hoursPerWeek: z.number().int().positive().optional(),
-  college: z.string().optional(),
-  orgId: Id.optional(), // set for role === "org"
+  /** Public portfolio slug: /u/:handle */
+  handle: z.string().optional(),
+  avatarUrl: MediaUrl.optional(),
+  artFormIds: z.array(ArtFormId),
+  region: z.string().optional(), // state
+  city: z.string().optional(),
+  languages: z.array(z.string()),
+  yearsPracticing: z.number().int().nonnegative().optional(),
+  employerId: Id.optional(), // set for role === "employer"
 });
 export type Person = z.infer<typeof Person>;
 
-/* ---------- Tasks ---------- */
+/* ---------- Media: photos, recordings and videos are the evidence ---------- */
 
-export const TaskStatus = z.enum([
-  "draft", // org is still writing
-  "spec_review", // AI draft exists, org reviewing criteria
+export const MediaKind = z.enum(["photo", "audio", "video"]);
+export const MediaStage = z.enum(["process", "final"]);
+export const Media = z.object({
+  id: Id,
+  kind: MediaKind,
+  stage: MediaStage, // process = work-in-progress proof; final = the delivered piece
+  url: MediaUrl,
+  caption: z.string().optional(),
+  durationSec: z.number().positive().optional(), // audio/video
+  createdAt: IsoDate,
+});
+export type Media = z.infer<typeof Media>;
+
+/* ---------- Commissions ---------- */
+
+export const CommissionStatus = z.enum([
+  "draft", // employer is still writing
+  "brief_review", // AI draft exists, employer reviewing criteria
   "open", // published, waiting for a match
-  "matched", // learner + mentor confirmed
+  "matched", // artist + guru confirmed
   "in_progress",
-  "in_review", // submission waiting on mentor
-  "accepted", // org accepted the work
-  "verified", // mentor passed + org accepted → public work sample exists
+  "in_review", // submission waiting on guru
+  "accepted", // employer accepted, guru review not all-pass
+  "verified", // guru passed + employer accepted → public work sample exists
 ]);
-export type TaskStatus = z.infer<typeof TaskStatus>;
+export type CommissionStatus = z.infer<typeof CommissionStatus>;
 
 export const Criterion = z.object({
   id: Id,
   text: z.string().min(1),
-  testable: z.boolean(),
   aiGenerated: z.boolean(),
-  approved: z.boolean(), // org ticked it during spec review
+  approved: z.boolean(), // employer ticked it during brief review
 });
 export type Criterion = z.infer<typeof Criterion>;
 
@@ -66,74 +90,83 @@ export const Milestone = z.object({
   id: Id,
   title: z.string(),
   estDays: z.number().positive(),
-  dueDate: IsoDate.optional(),
   criterionIds: z.array(Id),
   status: MilestoneStatus,
 });
 export type Milestone = z.infer<typeof Milestone>;
 
-export const Task = z.object({
+export const Commission = z.object({
   id: Id,
-  orgId: Id,
+  employerId: Id,
   title: z.string(),
-  rawRequest: z.string(), // the org's own words, verbatim
-  status: TaskStatus,
-  skills: z.array(z.string()),
-  estHours: z.number().positive(),
-  repoUrl: z.string().url().optional(),
+  rawRequest: z.string(), // the employer's own words, verbatim
+  status: CommissionStatus,
+  artFormIds: z.array(ArtFormId),
+  estDays: z.number().positive(),
+  feeInr: z.number().int().nonnegative(), // agreed fee; payment itself happens outside the app
+  onSite: z.boolean(), // artist must travel (murals, performances)
+  city: z.string().optional(),
   criteria: z.array(Criterion),
   milestones: z.array(Milestone),
-  learnerId: Id.optional(),
-  mentorId: Id.optional(),
+  artistId: Id.optional(),
+  guruId: Id.optional(),
   createdAt: IsoDate,
 });
-export type Task = z.infer<typeof Task>;
+export type Commission = z.infer<typeof Commission>;
 
-export const CreateTaskInput = z.object({
-  orgId: Id,
+export const CreateCommissionInput = z.object({
+  employerId: Id,
   rawRequest: z.string().min(10),
   title: z.string().optional(),
 });
-export type CreateTaskInput = z.infer<typeof CreateTaskInput>;
+export type CreateCommissionInput = z.infer<typeof CreateCommissionInput>;
 
-export const UpdateTaskInput = Task.pick({
+export const UpdateCommissionInput = Commission.pick({
   title: true,
   status: true,
-  skills: true,
-  estHours: true,
-  repoUrl: true,
+  artFormIds: true,
+  estDays: true,
+  feeInr: true,
+  onSite: true,
+  city: true,
   criteria: true,
   milestones: true,
 }).partial();
-export type UpdateTaskInput = z.infer<typeof UpdateTaskInput>;
+export type UpdateCommissionInput = z.infer<typeof UpdateCommissionInput>;
 
-/* ---------- AI spec drafting (streamed) ---------- */
+/* ---------- AI brief drafting (streamed) ---------- */
 
-export const DraftSpecInput = z.object({ rawRequest: z.string().min(10) });
+export const DraftBriefInput = z.object({ rawRequest: z.string().min(10) });
 
 /**
- * POST /api/tasks/draft-spec responds with text/event-stream.
- * Each `data:` line is one JSON-encoded DraftSpecEvent.
+ * POST /api/commissions/draft-brief responds with text/event-stream.
+ * Each `data:` line is one JSON-encoded DraftBriefEvent.
  */
-export const DraftSpecEvent = z.discriminatedUnion("type", [
+export const DraftBriefEvent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("title"), title: z.string() }),
   z.object({ type: z.literal("criterion_start"), id: Id }),
   z.object({ type: z.literal("criterion_delta"), id: Id, text: z.string() }),
-  z.object({ type: z.literal("criterion_end"), id: Id, testable: z.boolean() }),
+  z.object({ type: z.literal("criterion_end"), id: Id }),
   z.object({ type: z.literal("milestone"), milestone: Milestone }),
-  z.object({ type: z.literal("meta"), skills: z.array(z.string()), estHours: z.number() }),
+  z.object({
+    type: z.literal("meta"),
+    artFormIds: z.array(ArtFormId),
+    estDays: z.number().positive(),
+    suggestedFeeInr: z.number().int().nonnegative(), // a fair-pay suggestion the employer can change
+    onSite: z.boolean(),
+  }),
   z.object({ type: z.literal("done") }),
   z.object({ type: z.literal("error"), message: z.string() }),
 ]);
-export type DraftSpecEvent = z.infer<typeof DraftSpecEvent>;
+export type DraftBriefEvent = z.infer<typeof DraftBriefEvent>;
 
 /* ---------- Matching ---------- */
 
 export const Match = z.object({
   id: Id,
-  taskId: Id,
-  learnerId: Id,
-  mentorId: Id,
+  commissionId: Id,
+  artistId: Id,
+  guruId: Id,
   score: z.number().min(0).max(1),
   reasons: z.array(z.string()),
   status: z.enum(["suggested", "confirmed", "rejected"]),
@@ -142,28 +175,24 @@ export type Match = z.infer<typeof Match>;
 
 /* ---------- Submissions & review ---------- */
 
-export const CiStatus = z.enum(["pending", "pass", "fail"]);
 export const Submission = z.object({
   id: Id,
-  taskId: Id,
+  commissionId: Id,
   milestoneId: Id,
-  prUrl: z.string().url(),
-  previewUrl: z.string().url().optional(),
-  ciStatus: CiStatus,
-  testsPassed: z.number().int().nonnegative().optional(),
-  testsTotal: z.number().int().nonnegative().optional(),
-  commits: z.number().int().nonnegative(),
-  additions: z.number().int().nonnegative(),
-  deletions: z.number().int().nonnegative(),
-  merged: z.boolean(),
+  media: z.array(Media).min(1),
+  note: z.string().optional(),
+  voiceNoteUrl: MediaUrl.optional(), // artists can explain by voice instead of typing
   submittedAt: IsoDate,
 });
 export type Submission = z.infer<typeof Submission>;
 
-export const CreateSubmissionInput = Submission.pick({
-  taskId: true,
-  milestoneId: true,
-  prUrl: true,
+/** Upload files first (POST /api/media), then submit their ids. */
+export const CreateSubmissionInput = z.object({
+  commissionId: Id,
+  milestoneId: Id,
+  mediaIds: z.array(Id).min(1),
+  note: z.string().optional(),
+  voiceNoteId: Id.optional(),
 });
 export type CreateSubmissionInput = z.infer<typeof CreateSubmissionInput>;
 
@@ -176,28 +205,33 @@ export const CriterionResult = z.object({
 export const Review = z.object({
   id: Id,
   submissionId: Id,
-  taskId: Id,
-  mentorId: Id,
+  commissionId: Id,
+  guruId: Id,
   results: z.array(CriterionResult),
-  rubric: z.object({ codeQuality: Score, communication: Score, timeliness: Score }),
+  rubric: z.object({
+    craft: Score, // skill and finish
+    tradition: Score, // true to the art form
+    timeliness: Score,
+  }),
   summary: z.string(),
+  voiceNoteUrl: MediaUrl.optional(),
   reviewedAt: IsoDate,
 });
 export type Review = z.infer<typeof Review>;
 
-export const CreateReviewInput = Review.omit({ id: true, reviewedAt: true, taskId: true });
+export const CreateReviewInput = Review.omit({ id: true, reviewedAt: true, commissionId: true });
 export type CreateReviewInput = z.infer<typeof CreateReviewInput>;
 
 export const Acceptance = z.object({
-  taskId: Id,
+  commissionId: Id,
   signatoryName: z.string(),
   acceptedAt: IsoDate,
-  previewOpened: z.boolean(), // UI requires the org to open the preview first
+  workViewed: z.boolean(), // UI requires the employer to open the final media first
   quote: z.string().optional(),
 });
 export type Acceptance = z.infer<typeof Acceptance>;
 
-export const AcceptInput = Acceptance.omit({ taskId: true, acceptedAt: true });
+export const AcceptInput = Acceptance.omit({ commissionId: true, acceptedAt: true });
 export type AcceptInput = z.infer<typeof AcceptInput>;
 
 /* ---------- Read models ---------- */
@@ -205,54 +239,54 @@ export type AcceptInput = z.infer<typeof AcceptInput>;
 /** GET /api/work/:slug — everything the public proof page needs. */
 export const WorkSample = z.object({
   slug: z.string(),
-  task: Task,
-  org: Org,
-  learner: Person,
-  mentor: Person,
+  commission: Commission,
+  employer: Employer,
+  artist: Person,
+  guru: Person,
   submissions: z.array(Submission),
   review: Review,
   acceptance: Acceptance,
-  liveUrl: z.string().url().optional(),
 });
 export type WorkSample = z.infer<typeof WorkSample>;
 
-/** GET /api/people/:login — public portfolio. */
-export const Portfolio = z.object({
-  person: Person,
-  samples: z.array(
-    z.object({
-      slug: z.string(),
-      title: z.string(),
-      orgName: z.string(),
-      shippedAt: IsoDate,
-      skills: z.array(z.string()),
-      avgScore: z.number(),
-    }),
-  ),
+export const PortfolioItem = z.object({
+  slug: z.string(),
+  title: z.string(),
+  employerName: z.string(),
+  completedAt: IsoDate,
+  artFormIds: z.array(ArtFormId),
+  avgScore: z.number(),
+  coverUrl: MediaUrl.optional(),
+  coverKind: MediaKind.optional(),
 });
+export type PortfolioItem = z.infer<typeof PortfolioItem>;
+
+/** GET /api/people/:handle — public portfolio. */
+export const Portfolio = z.object({ person: Person, samples: z.array(PortfolioItem) });
 export type Portfolio = z.infer<typeof Portfolio>;
 
 export const ImpactEvent = z.object({
   at: IsoDate,
-  kind: z.enum(["task_posted", "matched", "submitted", "reviewed", "accepted", "verified"]),
+  kind: z.enum(["commission_posted", "matched", "submitted", "reviewed", "accepted", "verified"]),
   label: z.string(),
 });
 export const ImpactStats = z.object({
-  orgsServed: z.number().int(),
-  tasksPosted: z.number().int(),
-  tasksShipped: z.number().int(),
-  learnersVerified: z.number().int(),
-  orgHoursSaved: z.number(),
+  employersServed: z.number().int(),
+  commissionsPosted: z.number().int(),
+  commissionsCompleted: z.number().int(),
+  artistsVerified: z.number().int(),
+  artistEarningsInr: z.number().int(), // sum of fees for accepted/verified commissions
   events: z.array(ImpactEvent),
 });
 export type ImpactStats = z.infer<typeof ImpactStats>;
 
-/** GET /api/talent?skill= — employer browse. */
+/** GET /api/talent?artForm= — employer browse. */
 export const TalentCard = z.object({
   person: Person,
   verifiedCount: z.number().int(),
   avgScore: z.number(),
   topSampleSlug: z.string(),
+  coverUrl: MediaUrl.optional(),
 });
 export type TalentCard = z.infer<typeof TalentCard>;
 

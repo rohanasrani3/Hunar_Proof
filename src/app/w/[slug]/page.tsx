@@ -2,20 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { artForm, artFormName } from "@/contract/artForms";
 import { DemoBanner } from "@/components/demo-banner";
-import { SiteHeader } from "@/components/site-header";
+import { MapPin } from "@/components/icons";
 import {
-  CodeEvidence,
   CriteriaReview,
   Eyebrow,
-  MentorRubric,
+  GuruAssessment,
+  MediaView,
   MetaItem,
   PersonChip,
+  ProcessTimeline,
   VerifiedPill,
 } from "@/components/proof/proof-parts";
+import { SiteHeader } from "@/components/site-header";
 import { ApiRequestError } from "@/lib/api";
-import { getServerApi } from "@/lib/server-api";
 import { formatDate } from "@/lib/format";
+import { getServerApi } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
@@ -36,66 +39,93 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const w = await load(slug);
   const passed = w.review.results.filter((r) => r.verdict === "pass").length;
   return {
-    title: `${w.task.title} — by ${w.learner.name}`,
-    description: `Verified work sample: ${passed}/${w.task.criteria.length} acceptance criteria passed, reviewed by ${w.mentor.name}, accepted by ${w.org.name}.`,
+    title: `${w.commission.title} — by ${w.artist.name}`,
+    description: `Verified ${w.commission.artFormIds.map((id) => artFormName(id)).join(", ")} work: ${passed}/${w.commission.criteria.length} criteria met, reviewed by ${w.guru.name}, accepted by ${w.employer.name}.`,
   };
 }
 
 export default async function WorkSamplePage({ params }: Props) {
   const { slug } = await params;
   const w = await load(slug);
-  const sub = w.submissions.find((s) => s.merged) ?? w.submissions.at(-1);
+  const allMedia = w.submissions.flatMap((s) => s.media);
+  const finals = allMedia.filter((m) => m.stage === "final");
+  const hero = finals.length ? finals : allMedia.slice(-1);
+  const process = allMedia.filter((m) => !hero.includes(m));
   const passed = w.review.results.filter((r) => r.verdict === "pass").length;
-  const total = w.task.criteria.length;
+  const forms = w.commission.artFormIds.map((id) => artForm(id)).filter((f) => !!f);
+  const formLabel = forms.map((f) => f.name).join(", ");
+  const artistPlace = [w.artist.city, w.artist.region].filter(Boolean).join(", ");
 
   return (
     <>
       <DemoBanner />
       <SiteHeader />
       <main className="mx-auto max-w-[1120px] px-4 pt-10 pb-12 sm:px-8 sm:pt-14">
-        <Eyebrow>Verified work sample · {w.slug.toUpperCase()}</Eyebrow>
+        <Eyebrow>
+          Verified work · {formLabel} · {w.slug.toUpperCase()}
+        </Eyebrow>
         <h1 className="m-0 mt-4 max-w-[860px] animate-rise font-serif text-[36px] leading-[1.08] font-semibold tracking-[-0.02em] text-balance sm:text-[54px] sm:leading-[1.06]">
-          {w.task.title}
+          {w.commission.title}
         </h1>
 
         <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-4">
-          <PersonChip name={w.learner.name} subtitle={w.learner.college ? `Learner · ${w.learner.college}` : "Learner"} />
+          <PersonChip name={w.artist.name} subtitle={`${formLabel} artist${artistPlace ? ` · ${artistPlace}` : ""}`} />
           <Divider />
-          <MetaItem label="Mentored by" value={w.mentor.name} />
+          <MetaItem
+            label="Reviewed by"
+            value={w.guru.name}
+            sub={w.guru.yearsPracticing ? `${w.guru.yearsPracticing} years of practice` : undefined}
+          />
           <Divider />
-          <MetaItem label="Shipped for" value={w.org.name} />
+          <MetaItem label="Commissioned by" value={w.employer.name} sub={`${w.employer.kind}, ${w.employer.city}`} />
           <Divider />
-          <MetaItem label="Shipped" value={formatDate(w.acceptance.acceptedAt)} />
+          <MetaItem label="Completed" value={formatDate(w.acceptance.acceptedAt)} sub="Paid commission" />
         </div>
 
-        <VerifiedPill passed={passed} total={total} />
+        <VerifiedPill passed={passed} total={w.commission.criteria.length} />
+
+        <section aria-label="The finished work" className="mt-10 flex flex-col gap-4">
+          {hero.map((m, i) => (
+            <figure key={m.id} className="m-0 animate-rise">
+              <MediaView m={m} priority={i === 0} />
+              {m.caption && m.kind !== "audio" && (
+                <figcaption className="mt-2 text-[14px] text-muted">{m.caption}</figcaption>
+              )}
+            </figure>
+          ))}
+        </section>
 
         <div className="mt-12 flex flex-wrap items-start gap-12">
           <section className="min-w-0 flex-[999_1_560px]" aria-labelledby="criteria-h">
-            <h2 id="criteria-h" className="m-0 mb-2 font-serif text-[26px] font-semibold">Acceptance criteria</h2>
+            <h2 id="criteria-h" className="m-0 mb-2 font-serif text-[26px] font-semibold">What was asked for</h2>
             <p className="m-0 mb-5 text-[15px] text-muted">
-              Agreed with {w.org.name} before work began. Each one was checked by the mentor.
+              Agreed with {w.employer.name} before work began. The guru checked each one.
             </p>
-            <CriteriaReview criteria={w.task.criteria} review={w.review} />
+            <CriteriaReview criteria={w.commission.criteria} review={w.review} />
 
             <details className="mt-6 text-[15px] text-ink-2">
-              <summary className="cursor-pointer font-medium text-ink">What the NGO originally asked for</summary>
+              <summary className="cursor-pointer font-medium text-ink">The employer’s original request</summary>
               <blockquote className="m-0 mt-3 rounded-xl bg-sunk px-4 py-3.5 font-serif text-base italic">
-                “{w.task.rawRequest}”
+                “{w.commission.rawRequest}”
               </blockquote>
+              {w.commission.onSite && w.commission.city && (
+                <p className="m-0 mt-3 flex items-center gap-1.5 text-[14px] text-muted">
+                  <MapPin /> Made on site in {w.commission.city}
+                </p>
+              )}
             </details>
           </section>
 
           <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-            <CodeEvidence sub={sub} skills={w.task.skills} repoUrl={w.task.repoUrl} liveUrl={w.liveUrl} />
-            <MentorRubric review={w.review} />
+            <ProcessTimeline media={process} />
+            <GuruAssessment review={w.review} guruName={w.guru.name} />
           </aside>
         </div>
 
         <footer className="mt-10 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-4 border-t-2 border-ink pt-6">
           <p className="m-0 text-[15px]">
             <b>
-              Accepted by {w.acceptance.signatoryName}, {w.org.name}
+              Accepted by {w.acceptance.signatoryName}, {w.employer.name}
             </b>{" "}
             <span className="text-muted">· {formatDate(w.acceptance.acceptedAt)}</span>
             {w.acceptance.quote && (
@@ -105,9 +135,9 @@ export default async function WorkSamplePage({ params }: Props) {
               </>
             )}
           </p>
-          {w.learner.githubLogin && (
-            <Link href={`/u/${w.learner.githubLogin}`} className="text-[15px] font-medium text-indigo hover:text-indigo-deep">
-              See all of {w.learner.name.split(" ")[0]}’s work →
+          {w.artist.handle && (
+            <Link href={`/u/${w.artist.handle}`} className="text-[15px] font-medium text-indigo hover:text-indigo-deep">
+              See all of {w.artist.name.split(" ")[0]}’s work →
             </Link>
           )}
         </footer>

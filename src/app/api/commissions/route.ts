@@ -1,19 +1,11 @@
-import { CreateCommissionInput } from "@/contract/schemas";
-import { body, handle } from "@/server/http";
-import { createCommission, listCommissions } from "@/server/mockStore";
-
-export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams;
-  return handle(() =>
-    listCommissions({
-      employerId: q.get("employerId") ?? undefined,
-      artistId: q.get("artistId") ?? undefined,
-      guruId: q.get("guruId") ?? undefined,
-      status: q.get("status") ?? undefined,
+import { commissions } from "@/server/market";
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+  return Response.json(
+    await commissions({
+      form: params.get("form") ?? "",
+      category: params.get("category") ?? "",
+      status: params.get("status") ?? "",
     }),
   );
-}
-
-export async function POST(req: Request) {
-  return handle(async () => createCommission(await body(req, CreateCommissionInput)), 201);
 }

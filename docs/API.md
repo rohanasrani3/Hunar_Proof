@@ -1,62 +1,40 @@
-# Hunar Proof API contract
+# KareGhar application interfaces
 
-The frontend talks to the backend **only** through these endpoints. Request
-and response shapes are defined in Zod in
-[`src/contract/schemas.ts`](../src/contract/schemas.ts), and art-form ids come
-from [`src/contract/artForms.ts`](../src/contract/artForms.ts). Those files are
-the source of truth. If this page and those files disagree, the files are
-correct.
+Public JSON reads use GET. Discovery pages and API handlers call the same market queries. Authenticated forms use Next.js Server Actions and Auth.js cookies.
 
-A working reference implementation is in this repo:
-`src/app/api/**/route.ts` together with `src/server/mockStore.ts`. To see the
-expected responses, run `npm run dev` and send requests with curl.
+| Endpoint | Response |
+| --- | --- |
+| /api/forms | Current forms with id, category, name and Hindi label hi. |
+| /api/talent?category=&form= | Artist directory ordered by eligible completed commission count in the selected scope. artFormId is also accepted. |
+| /api/commissions?category=&form=&status= | Commission cards. Status values are finding, progress and done. |
+| /api/commissions/{id} | Commission detail with authorized output key or empty string. Unknown ID returns 404. |
+| /api/people/{handle} | Public profile fields or 404. |
+| /api/media/{key} | Authorized file bytes or 404. Responses use private, no-store caching. |
+| /api/auth/* | Auth.js Credentials signin, session, CSRF and signout endpoints. |
 
-## Rules for the real backend
-- Use the same paths, under `/api`. Send JSON bodies with `Content-Type: application/json`. The one exception is `POST /api/media`, which takes multipart form data.
-- On errors, return the body `{ "error": string, "details"?: any }`, with status 400 (bad input), 401/403 (auth), 404, or 409 (wrong state).
-- Format every date as ISO-8601 with an offset (for example, `2026-11-08T16:00:00+05:30`).
-- Auth uses cookies (`credentials: include`). Allow CORS from the frontend origin, with credentials.
-- The client validates every response against the schema. **Any extra or missing field breaks the UI immediately**, so the mismatch shows up early instead of failing silently.
-- Money: `feeInr` is a whole number of rupees. **The app records the agreed fee, but it never moves money.** The employer pays the artist directly.
+## Mutation schemas
 
-## Endpoints
+All action arguments are validated or resolved on the server. An invalid request returns localized UI feedback. Identity and state checks are repeated in guarded database writes. Form actions are in src/server/actions.ts.
 
-| Method | Path | Body | Returns | Notes |
-|---|---|---|---|---|
-| GET | `/api/commissions?employerId&artistId&guruId&status` | – | `Commission[]` | All filters are optional |
-| POST | `/api/commissions` | `CreateCommissionInput` | `Commission` (201) | Status starts at `draft` |
-| GET | `/api/commissions/:id` | – | `{ commission, submissions[], reviews[] }` | |
-| PATCH | `/api/commissions/:id` | `UpdateCommissionInput` | `Commission` | The employer saves the edited brief, fee and milestones, then sets `status: "open"` |
-| POST | `/api/commissions/draft-brief` | `{ rawRequest }` | **`text/event-stream`** | Each `data:` line is one `DraftBriefEvent` (see below) |
-| POST | `/api/commissions/:id/accept` | `AcceptInput` | `{ acceptance, slug \| null }` | 409 if `workViewed` is false or there is no review. Sets `verified` when every point passed, and a slug is created then |
-| GET | `/api/matches?commissionId` | – | `Match[]` | Sorted by score, highest first. The guru must practise the same art form |
-| POST | `/api/matches/:id/confirm` | – | `Match` | Commission must be `open`. Rejects the other suggestions and sets the commission to `matched` |
-| POST | `/api/media` | multipart: `file`, `stage` (`process`\|`final`), `caption?` | `Media` (201) | Photo (jpeg/png/webp/heic), audio (mp3/m4a/aac/ogg/webm/wav) or video (mp4/webm/mov), up to 25 MB. **Real backend: compress images and transcode video for 3G** |
-| GET | `/api/media/:id` | – | the file | Mock only. The real backend returns storage/CDN URLs in `Media.url` |
-| POST | `/api/submissions` | `CreateSubmissionInput` | `Submission` (201) | Upload the media first, then send `mediaIds` (and an optional `voiceNoteId`). Sets the commission to `in_review` |
-| POST | `/api/reviews` | `CreateReviewInput` | `Review` (201) | If every point passes, the milestone is `done`. Otherwise the commission goes back to `in_progress` |
-| GET | `/api/work/:slug` | – | `WorkSample` | Read model for the public proof page |
-| GET | `/api/people?role` | – | `Person[]` | |
-| GET | `/api/people/:handle` | – | `Portfolio` | Public portfolio |
-| GET | `/api/impact` | – | `ImpactStats` | **Must come from real data only.** Judges score "proven impact" from this. `artistEarningsInr` is the sum of fees for accepted commissions |
-| GET | `/api/talent?artForm` | – | `TalentCard[]` | Artists with at least one verified work |
+| Action | Form fields | Result |
+| --- | --- | --- |
+| register | username, name, email, password, role (artist or customer) | Account and login redirect. |
+| updateProfile | name, email, company, social_linkedin, social_instagram, social_facebook, social_x, social_youtube, linksExtra (preserved legacy URL array), optional photo | Updates authenticated account. Each social URL must match its platform. Legacy links textarea submissions remain accepted. Photo supports JPEG, PNG or WebP. |
+| changePassword | current, password | Rotates password hash and session revision. |
+| addWork | title, url, category, formName | Adds portfolio work and registers a form in its category when needed. |
+| postCommission | title, brief, category, form, optional otherForm, fee (whole INR) | New Finding commission and detail redirect. form=__other__ registers otherForm in the selected category. |
+| commissionAction / propose | id, message | One private proposal per artist per real Finding commission. |
+| commissionAction / select | id, proposal | Owner selects a proposer; state becomes In-progress. |
+| commissionAction / submit | id, file | Assigned artist submits a finished image, WAV, MP3 or MP4 up to 5 MiB. |
+| commissionAction / accept | id | Owner accepts a submitted output; state becomes Done, initially private. |
+| commissionAction / visibility | id, public (on or omitted) | Owner publishes or hides the completed output. |
+| switchLanguage | lang (en or hi) | Stores the site-wide language cookie. |
 
-## Commission lifecycle
-```
-draft → brief_review → open → matched → in_progress → in_review ─┬→ verified  (every point passed + employer accepted)
-                                            ↑                     └→ accepted  (employer accepted, review not all-pass)
-                                            └── review with needs_work
-```
+The lifecycle mutations never accept a caller-supplied account identity, role or sample flag. Sample data is assigned by backend fixtures. The rank counts Done commissions once each, regardless of output visibility.
 
-## Streaming: `DraftBriefEvent` order
-```
-title → (criterion_start → criterion_delta* → criterion_end)+ → milestone+ → meta → done
-```
-`meta` carries `artFormIds`, `estDays`, `suggestedFeeInr` and `onSite`.
-`error` can arrive at any point and ends the stream. The mock is in
-`src/server/draftBriefMock.ts`. The real agent must emit the same sequence.
-Test it with:
-```bash
-curl -N -X POST localhost:3000/api/commissions/draft-brief -H 'content-type: application/json' \
-  -d '{"rawRequest":"We want a Madhubani painting on our hotel lobby wall"}'
-```
+## Moderation
+
+/admin and /admin/{account-id} require an active admin session. Dashboard views expose public profile and commission metadata. Only actual commission participants can read proposals or unpublished files.
+
+/admin/{account-id} submits moderateAccount with target, version, action (suspend or restore), reason (1–4000 trimmed characters) and confirm=on. The server records actor, target, reason, time and transition. Suspension invalidates sessions, blocks login, removes public listings and pauses related actions. Restoration preserves historical records and requires a new login. There is no account deletion endpoint.
+Usernames are case-sensitive and allow 3–40 ASCII letters, digits or underscores. Registration and password changes accept 6–128 characters.

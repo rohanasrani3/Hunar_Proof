@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750" role="img" aria-label="Sample placeholder in the spirit of Terracotta pottery">
+<rect width="1200" height="750" fill="#f3dcc0"/>
+<rect y="640" width="1200" height="110" fill="#c9a27a"/>
+     <g transform="translate(230 640)" stroke="#5a2c17" stroke-width="4" fill="#b5562e">
+    <path d="M-72 -300 L72 -300 Q84 -255 120 -180 Q144 -60 72 0 L-72 0 Q-144 -60 -120 -180 Q-84 -255 -72 -300Z"/>
+    <path d="M-108 -150 L108 -150" stroke="#f3dcc0" stroke-dasharray="12 10"/></g><g transform="translate(520 640)" stroke="#5a2c17" stroke-width="4" fill="#c8683a">
+    <path d="M-90 -420 L90 -420 Q105 -357 150 -252 Q180 -84 90 0 L-90 0 Q-180 -84 -150 -252 Q-105 -357 -90 -420Z"/>
+    <path d="M-135 -210 L135 -210" stroke="#f3dcc0" stroke-dasharray="12 10"/></g><g transform="translate(820 640)" stroke="#5a2c17" stroke-width="4" fill="#a64b26">
+    <path d="M-66 -260 L66 -260 Q77 -221 110 -156 Q132 -52 66 0 L-66 0 Q-132 -52 -110 -156 Q-77 -221 -66 -260Z"/>
+    <path d="M-99 -130 L99 -130" stroke="#f3dcc0" stroke-dasharray="12 10"/></g><g transform="translate(1030 640)" stroke="#5a2c17" stroke-width="4" fill="#bf5f34">
+    <path d="M-48 -200 L48 -200 Q56 -170 80 -120 Q96 -40 48 0 L-48 0 Q-96 -40 -80 -120 Q-56 -170 -48 -200Z"/>
+    <path d="M-72 -100 L72 -100" stroke="#f3dcc0" stroke-dasharray="12 10"/></g>
+<text x="1180" y="34" text-anchor="end" font-family="sans-serif" font-size="18" fill="#5a2c17" opacity="0.75">SAMPLE PLACEHOLDER · TERRACOTTA POTTERY</text>
+</svg>

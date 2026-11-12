@@ -4,6 +4,7 @@ import { forms, commissions } from "@/server/market";
 import { viewer } from "@/server/auth";
 import { language } from "@/i18n/language";
 import { Filters, Sample, stateName } from "@/components/discovery";
+import { sampleCover } from "@/lib/sample-media";
 export default async function Page({
   searchParams,
 }: {
@@ -38,11 +39,9 @@ export default async function Page({
               cover={
                 c.output && /\.(png|jpg|webp)$/i.test(c.output)
                   ? "/api/media/" + c.output
-                  : c.sample && c.form === "block-print"
-                    ? "/seed/blockprint-sample.svg"
-                    : c.sample && c.form === "warli"
-                      ? "/seed/warli-final.svg"
-                      : undefined
+                  : c.sample
+                    ? sampleCover(c.form)
+                    : undefined
               }
               formLabel={form?.[lang === "hi" ? "hi" : "name"] ?? c.form}
               action={t("View commission", "कमीशन देखें")}

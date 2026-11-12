@@ -20,6 +20,8 @@ Use Node.js 24. Run `npm ci` then `npm run dev`. Open http://localhost:3000. Loc
 3. Build with `npm run build` and serve with `npm start` on a Node host such as Render. Set the host runtime to Node 24. For an explicitly local production-build smoke test, use KAREGHAR_LOCAL=1, a local NEXTAUTH_URL and a temporary NEXTAUTH_SECRET.
 4. Set KAREGHAR_SEED_SAMPLES=1 only if sample records should be inserted into a connected database. Accounts created by signup are always real, single-role accounts.
 
+Sample data (src/server/samples.ts) has five fictional customers, one fictional artist for each of the 17 seed art forms, portfolio work, and 17 commissions across Finding, In-progress and Done. Its artwork and tunes in public/seed are generated placeholders, not real artists' work. Run `node scripts/generate-sample-media.mjs` to regenerate them. Sample records cannot sign in and never count toward rankings or impact.
+
 Uploads are limited to 5 MiB and pass through the authenticated server before storage. Profile photos are public. Finished files are private to participants until the customer publishes them. The media route checks access on every read, including after a customer hides an output.
 
 Run `npm run lint` and `npm run build` before submitting. AGENTS.md records function contracts and product decisions. docs/API.md lists the HTTP and Server Action interfaces.

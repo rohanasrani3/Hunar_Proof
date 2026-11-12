@@ -26,6 +26,9 @@ Signatures below describe the callable application boundaries. UI page component
 | contract/schemas | signupSchema, profileSchema, commissionSchema; Role, Account, Form, Work, Commission | Validate mutations and type the stored/read projections. Commission validation includes category and optional Other form name. Only server code sets IDs, role after registration, session revision, sample and workflow state. |
 | contract/artForms | CATEGORIES, ART_FORMS | Bilingual category labels and initial form records. Read the live catalogue via market.forms. |
 | server/db.query | SQL, bound scalar values → rows | Shared PostgreSQL/local SQLite access. Connect once per process. Initialize local schema and seed backend fixtures. PostgreSQL migrations run separately. |
+| server/samples.seedSamples | query function → void | Idempotently insert the sample catalogue (SAMPLE_ACCOUNTS, SAMPLE_WORKS, SAMPLE_COMMISSIONS): fictional customers and one artist per seed form, sample=1 with no password. Called by db on local SQLite, or on PostgreSQL only with KAREGHAR_SEED_SAMPLES=1. |
+| lib/sample-media.sampleCover | form ID → placeholder path or undefined | Cover art for sample commissions only. Never use it for real briefs. |
+| scripts/generate-sample-media.mjs | () → public/seed/forms/*.svg, *.wav | Regenerate the original placeholder artwork and tunes used by sample records. |
 | server/auth.authOptions | Credentials provider, JWT and session callbacks | Verify Argon2id, limit attempts per username, carry immutable account ID and password revision. |
 | server/auth.viewer | () → current Account or null | Check session identity and revision against the stored account on every protected operation. |
 | server/market.forms | () → Form[] | Read ordered live forms for both directories, posts and portfolio entry. |

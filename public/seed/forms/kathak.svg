@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750" role="img" aria-label="Sample placeholder in the spirit of Kathak">
+<rect width="1200" height="750" fill="#2a2140"/>
+<rect width="1200" height="750" fill="#2a2140"/><path d="M0 580 L1200 580 L1200 750 L0 750Z" fill="#3d3058"/>
+<path d="M600 0 L250 580 L950 580Z" fill="#fff4d6" opacity="0.18"/><circle cx="600" cy="250" r="40" fill="#f0c9a0"/><path d="M570 300 L630 300 L640 390 L560 390Z" fill="#c8372d"/>
+    <path d="M570 310 L470 230 M630 310 L730 230" stroke="#f0c9a0" stroke-width="14" stroke-linecap="round"/><path d="M560 380 Q600 430 640 380" fill="none" stroke="#c8372d" stroke-width="10"/><path d="M538 400 Q600 462 662 400" fill="none" stroke="#e3a33b" stroke-width="10"/><path d="M516 420 Q600 494 684 420" fill="none" stroke="#c8372d" stroke-width="10"/><path d="M494 440 Q600 526 706 440" fill="none" stroke="#e3a33b" stroke-width="10"/><path d="M472 460 Q600 558 728 460" fill="none" stroke="#c8372d" stroke-width="10"/><path d="M450 480 Q600 590 750 480" fill="none" stroke="#e3a33b" stroke-width="10"/><path d="M428 500 Q600 622 772 500" fill="none" stroke="#c8372d" stroke-width="10"/><path d="M406 520 Q600 654 794 520" fill="none" stroke="#e3a33b" stroke-width="10"/><path d="M384 540 Q600 686 816 540" fill="none" stroke="#c8372d" stroke-width="10"/>
+<text x="1180" y="34" text-anchor="end" font-family="sans-serif" font-size="18" fill="#f6efe0" opacity="0.75">SAMPLE PLACEHOLDER · KATHAK</text>
+</svg>

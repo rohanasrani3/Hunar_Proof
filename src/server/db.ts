@@ -3,6 +3,7 @@ import postgres from "postgres";
 import { mkdirSync } from "node:fs";
 import { initializeLocalDb } from "../../scripts/init-local-db.mjs";
 import { ART_FORMS } from "@/contract/artForms";
+import { seedSamples } from "./samples";
 
 type Value = string | number | null;
 interface Database {
@@ -53,31 +54,8 @@ async function connect(): Promise<Database> {
       "INSERT INTO forms VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING",
       [form.id, form.category, form.name, form.hi],
     );
-  if (!process.env.DATABASE_URL || process.env.KAREGHAR_SEED_SAMPLES === "1") {
-    for (const [id, name, role] of [
-      ["demo-artist", "Meera Patil", "artist"],
-      ["demo-blockprinter", "Meena K.", "artist"],
-      ["demo-musician", "Ravi P.", "artist"],
-      ["demo-customer", "Aangan Studio", "customer"],
-    ]) {
-      await database.query(
-        "INSERT INTO accounts(id,username,email,name,role,password_hash,sample) VALUES($1,$1,$2,$3,$4,'',1) ON CONFLICT DO NOTHING",
-        [id, id + "@example.invalid", name, role],
-      );
-    }
-    await database.query(
-      "INSERT INTO works VALUES ('demo-wall','demo-artist','warli','Village celebration','/seed/warli-final.svg') ON CONFLICT DO NOTHING",
-    );
-    await database.query(
-      "INSERT INTO works VALUES ('demo-textile','demo-blockprinter','block-print','Floral block print','/seed/blockprint-sample.svg'),('demo-song','demo-musician','marathi-folk','Marathi folk jingle','/seed/jingle-draft.wav') ON CONFLICT DO NOTHING",
-    );
-    await database.query(
-      "INSERT INTO commissions(id,customer,form,title,brief,fee,sample,created,status,artist) VALUES ('demo-mural','demo-customer','warli','Warli mural for a café','Paint a village celebration for the café counter wall.',8000,1,0,'done','demo-artist'),('demo-jingle','demo-customer','marathi-folk','Marathi folk jingle','Record a short folk melody for a café opening.',3000,1,0,'progress','demo-musician') ON CONFLICT DO NOTHING",
-    );
-    await database.query(
-      "INSERT INTO commissions(id,customer,form,title,brief,fee,sample,created) VALUES ('demo-print','demo-customer','block-print','Hand-printed table runners','Design six cotton runners with Bagru floral motifs for our café.',4500,1,0) ON CONFLICT DO NOTHING",
-    );
-  }
+  if (!process.env.DATABASE_URL || process.env.KAREGHAR_SEED_SAMPLES === "1")
+    await seedSamples((sql, values) => database.query(sql, values));
   return database;
 }
 export async function query<T>(

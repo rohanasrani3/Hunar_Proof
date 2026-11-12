@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750" role="img" aria-label="Sample placeholder in the spirit of Bharatanatyam">
+<rect width="1200" height="750" fill="#3b1e2b"/>
+<rect width="1200" height="750" fill="#3b1e2b"/><path d="M0 580 L1200 580 L1200 750 L0 750Z" fill="#55303f"/>
+<path d="M600 0 L250 580 L950 580Z" fill="#fff4d6" opacity="0.18"/>
+    <circle cx="600" cy="220" r="40" fill="#e8b98f"/><path d="M565 270 L635 270 L650 380 L550 380Z" fill="#e3a33b"/>
+    <path d="M565 285 L460 285 L430 220 M635 285 L740 285 L770 220" fill="none" stroke="#e8b98f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M550 380 L470 470 L520 570 M650 380 L730 470 L680 570" fill="none" stroke="#c8372d" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M600 385 L540 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L560 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L580 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L600 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L620 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L640 520" stroke="#2f7a4a" stroke-width="10"/><path d="M600 385 L660 520" stroke="#2f7a4a" stroke-width="10"/>
+<text x="1180" y="34" text-anchor="end" font-family="sans-serif" font-size="18" fill="#f6efe0" opacity="0.75">SAMPLE PLACEHOLDER · BHARATANATYAM</text>
+</svg>

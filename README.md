@@ -10,17 +10,24 @@ Use Node.js 24. Run `npm ci` then `npm run dev`. Open http://localhost:3000. Loc
 
 - `/commissions` — browse and post work
 - `/talent` — filter and rank artists
-- `/profile` — manage details, portfolio work, commissions and password
+- `/profile` — view and edit personal details, bio, public contact and photo
+- `/profile?tab=portfolio` — add, edit and remove portfolio work
+- `/profile/history` — private proposals, quotations, messages, progress and submissions
+- `/profile?tab=security` — password and account deletion
 - `/impact` — live pipeline and accepted fees
 
 ## Supabase and hosting
 
-1. Apply migrations/001_marketplace.sql followed by migrations/002_supabase.sql and migrations/003_moderation.sql in the Supabase SQL editor. The second migration enables row-level security, revokes public API access and creates the private kareghar bucket.
+1. Apply migrations/001_marketplace.sql followed by migrations/002_supabase.sql, migrations/003_moderation.sql and migrations/004_experience.sql in the Supabase SQL editor. Apply each migration once, in order. Migration 004 adds profile fields, quotations, reference media, private messages, notifications and event history while preserving existing records. The second migration enables row-level security, revokes public API access and creates the private kareghar bucket; later migrations protect their new tables too.
 2. Set server-only DATABASE_URL (Supabase PostgreSQL connection string with TLS), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, NEXTAUTH_SECRET (random secret), and NEXTAUTH_URL (canonical HTTPS origin). Auth.js manages sessions. Keep privileged credentials off the client.
 3. Build with `npm run build` and serve with `npm start` on a Node host such as Render. Set the host runtime to Node 24. For an explicitly local production-build smoke test, use KAREGHAR_LOCAL=1, a local NEXTAUTH_URL and a temporary NEXTAUTH_SECRET.
 4. Set KAREGHAR_SEED_SAMPLES=1 only if sample records should be inserted into a connected database. Accounts created by signup are always real, single-role accounts.
 
-Sample data (src/server/samples.ts) has five fictional customers, one fictional artist for each of the 17 seed art forms, portfolio work, and 17 commissions across Finding, In-progress and Done. Its artwork and tunes in public/seed are generated placeholders, not real artists' work. Run `node scripts/generate-sample-media.mjs` to regenerate them. Sample records cannot sign in and never count toward rankings or impact.
+Sample data (src/server/samples.ts) has five fictional customers, one fictional artist for each of the 17 seed art forms, portfolio work, and 17 commissions across Finding, In-progress and Done. Its artwork and tunes in public/seed are generated placeholders, not real artists' work. Run `node scripts/generate-sample-media.mjs` to regenerate them. Sample records cannot sign in or accept proposals. They do count toward pilot rankings and impact, with visible sample labels and a notice that their fees are fictional. Rankings count only accepted commissions with a finished submission, not ordinary portfolio uploads.
+
+Local SQLite applies migrations automatically. Set KAREGHAR_DATA_DIR to a separate directory (for example `.kareghar/qa-experience`) for isolated local tests; the default is `.kareghar`. Work in progress and private conversations are available through History rather than public discovery. Login email stays private; the optional public contact field is explicitly opt-in.
+
+Run `npm run test:experience` for the isolated workflow regression checks. See [experience validation](docs/EXPERIENCE-QA.md) for the browser scenarios and deployment limitations checked with this update.
 
 Uploads are limited to 5 MiB and pass through the authenticated server before storage. Profile photos are public. Finished files are private to participants until the customer publishes them. The media route checks access on every read, including after a customer hides an output.
 

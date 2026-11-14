@@ -1,11 +1,14 @@
 import { language } from "@/i18n/language";
 import { register } from "@/server/actions";
 import { ActionForm } from "@/components/action-form";
+import Link from "next/link";
 export default async function Page() {
   const { t, lang } = await language();
   return (
-    <section className="narrow">
+    <section className="auth-page">
+      <p className="eyebrow">{t("Make something together", "साथ मिलकर कुछ बनाएँ")}</p>
       <h1>{t("Create an account", "खाता बनाएँ")}</h1>
+      <p>{t("Find your next collaborator. Artists can set up their portfolio after signing in.", "अपना अगला सहयोगी खोजें। कलाकार लॉग इन करने के बाद पोर्टफ़ोलियो बना सकते हैं।")}</p>
       <ActionForm
         action={register}
         label={t("Create account", "खाता बनाएँ")}
@@ -53,6 +56,7 @@ export default async function Page() {
           />
         </label>
       </ActionForm>
+      <p>{t("Already have an account?", "पहले से खाता है?")} <Link href="/login">{t("Log in", "लॉग इन")}</Link></p>
     </section>
   );
 }

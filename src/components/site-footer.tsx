@@ -19,7 +19,7 @@ export async function SiteFooter() {
       </nav>
       <div>
         <strong>{t("About sample content", "नमूना सामग्री के बारे में")}</strong>
-        <p>{t("Examples are marked “Sample data”. They are read-only and do not count toward artist rankings or impact totals.", "उदाहरण “नमूना डेटा” के रूप में चिह्नित हैं। वे केवल देखने के लिए हैं और कलाकार रैंकिंग या प्रभाव के आँकड़ों में नहीं गिने जाते।")}</p>
+        <p>{t("We’re building our first community. Examples marked “Sample data” help you explore the pilot, including its rankings and impact. They’re fictional and read-only.", "हम अपना पहला समुदाय बना रहे हैं। “नमूना डेटा” वाले काल्पनिक उदाहरण पायलट, उसकी रैंकिंग और प्रभाव को समझने के लिए हैं। ये केवल देखने के लिए हैं।")}</p>
       </div>
     </div>
   </footer>;

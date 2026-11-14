@@ -1,0 +1,165 @@
+/* Profile, portfolio and media components. Shared palette comes from globals.css. */
+.profile-shell { max-width: 960px; margin-inline: auto; }
+.profile-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.8rem; }
+.profile-page-heading h1 { margin: .35rem 0 0; font-size: clamp(2rem, 5vw, 3.5rem); }
+.profile-page-heading .meta { margin: 0; }
+.profile-role { font-size: .8rem; padding: .4rem .8rem; border: 1px solid var(--color-line); border-radius: 4px; color: var(--color-muted); }
+.profile-tabs { display: flex; gap: .3rem 1.5rem; border-bottom: 1px solid var(--color-line); margin-bottom: 2rem; overflow-x: auto; scrollbar-width: thin; }
+.content .profile-tabs > a { display: inline-flex; align-items: center; gap: .5rem; flex-shrink: 0; padding: .8rem 0 1rem; font-size: .9rem; color: var(--color-muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.content .profile-tabs > a[aria-current="page"] { color: var(--color-indigo); border-bottom-color: var(--color-indigo); font-weight: 650; }
+.content .profile-tabs > a:hover { color: var(--color-ink); }
+.profile-panel { padding: clamp(1.2rem, 3vw, 2rem); border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-card); }
+.profile-shell .section-heading, .public-profile .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 1.2rem; margin-bottom: 1.6rem; }
+.profile-shell .section-heading h2, .public-profile .section-heading h2 { margin: 0; font-size: clamp(1.5rem, 3vw, 2rem); }
+.profile-shell .section-heading p, .public-profile .section-heading p { margin: .45rem 0 0; color: var(--color-muted); font-size: .9rem; max-width: 65ch; }
+.profile-shell .section-heading > .button { flex-shrink: 0; }
+.profile-read-intro { display: flex; gap: 1.4rem; align-items: center; padding: .5rem 0 1.4rem; }
+.profile-read-intro h3 { font-size: 1.6rem; margin: 0 0 .4rem; }
+.profile-read-intro p { margin: 0; font-size: .9rem; }
+.profile-photo-shortcut { position: relative; flex-shrink: 0; border-radius: 50%; }
+.profile-photo-shortcut .avatar-overlay { font-size: 1.2rem; }
+.profile-photo-shortcut:hover .avatar-overlay, .profile-photo-shortcut:focus-visible .avatar-overlay { color: white; background: var(--color-indigo); }
+.profile-details { margin: .7rem 0 0; }
+.profile-details > div { padding: 1.25rem 0; display: grid; grid-template-columns: 155px minmax(0, 1fr); gap: 1rem; border-top: 1px solid var(--color-line); }
+.profile-details dt { font-size: .82rem; color: var(--color-muted); padding-top: .15rem; }
+.profile-details dd { font-size: .95rem; line-height: 1.7; overflow-wrap: anywhere; }
+.profile-social-section { border-top: 1px solid var(--color-line); padding-top: 1.25rem; }
+.profile-social-section h3 { font: 500 .82rem var(--font-sans); color: var(--color-muted); margin: 0; }
+.profile-edit-fields { display: grid; gap: 1.2rem; min-width: 0; border: 0; padding: 0; margin: 0; }
+.profile-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
+.profile-edit-fields small, .profile-panel label > small, .work-upload small { display: block; font-size: .78rem; line-height: 1.55; font-weight: 400; margin-top: .45rem; }
+.profile-edit-fields .social-fields { margin-top: .6rem; padding-top: 1.2rem; border-top: 1px solid var(--color-line); }
+.profile-edit-fields .social-fields legend { padding-top: 1.2rem; }
+.profile-edit-fields label { min-width: 0; }
+.profile-edit-fields select { color-scheme: light; }
+.photo-editor-row { display: flex; align-items: center; gap: 1.3rem; padding: .4rem 0 1rem; }
+.photo-editor { flex-shrink: 0; position: relative; }
+.photo-editor .avatar-button { position: relative; border-radius: 50%; display: block; padding: 0; }
+.photo-editor .profile-avatar, .photo-editor .profile-avatar-placeholder { width: 104px; height: 104px; }
+.avatar-overlay { display: grid; place-items: center; position: absolute; right: -3px; bottom: 0; width: 35px; height: 35px; border-radius: 50%; color: var(--color-indigo); background: var(--color-card); border: 1px solid var(--color-line-strong); transition: background-color .15s; }
+.avatar-button:hover .avatar-overlay, .avatar-button:focus-visible .avatar-overlay { background: var(--color-indigo); color: white; }
+.photo-editor-copy .text-button + .text-button { margin-left: 1rem; }
+.text-button { color: var(--color-indigo); font-size: .86rem; font-weight: 550; text-decoration: underline; text-underline-offset: 4px; min-height: 40px; }
+.quiet-danger { color: var(--color-fail); }
+.profile-success { padding: .75rem 1rem; color: var(--color-pass); border-left: 3px solid var(--color-pass); background: color-mix(in srgb, var(--color-pass) 5%, var(--color-card)); border-radius: 3px; font-size: .9rem; }
+.profile-empty-note { border-block: 1px solid var(--color-line); padding: 1.8rem 0; }
+.form-hint { color: var(--color-muted); font-size: .82rem; line-height: 1.6; }
+.security-panels { display: grid; gap: 2rem; max-width: 740px; }
+.security-panels .stack { max-width: 540px; }
+.account-danger { border-top: 2px solid color-mix(in srgb, var(--color-fail) 45%, var(--color-line)); }
+.account-danger h2 { color: var(--color-fail); }
+.account-danger .danger-button, .account-danger .button:not(.secondary) { color: var(--color-fail); background: transparent; border: 1px solid color-mix(in srgb, var(--color-fail) 45%, var(--color-line)); }
+.account-danger .danger-button:hover, .account-danger .button:not(.secondary):hover { background: color-mix(in srgb, var(--color-fail) 7%, var(--color-card)); }
+.portfolio-empty { text-align: center; padding: clamp(2rem, 6vw, 4rem) 1.5rem; background: var(--color-card); border: 1px solid var(--color-line); border-radius: 8px; }
+.empty-art { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 1.5rem; border: 1px solid var(--color-line-strong); background: var(--color-paper); border-radius: 50%; color: var(--color-saffron); font-size: 3.4rem; }
+.portfolio-empty h3 { font-size: clamp(1.5rem, 4vw, 2rem); }
+.portfolio-empty > p:not(.meta) { max-width: 49ch; margin: .9rem auto 1.4rem; font-size: .95rem; }
+.portfolio-manager-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+.managed-work { border: 1px solid var(--color-line); border-radius: 7px; overflow: hidden; background: var(--color-card); }
+.managed-work-image { display: grid; place-items: center; aspect-ratio: 4/3; background: var(--color-sunk); overflow: hidden; }
+.managed-work-image img { width: 100%; height: 100%; object-fit: cover; }
+.managed-work-image > span { font-size: 3rem; color: var(--color-indigo); }
+.managed-work-caption { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: 1rem; }
+.managed-work-caption h3 { font-size: 1.2rem; line-height: 1.35; margin: .25rem 0 0; }
+.managed-work-caption small { font-size: .72rem; }
+.icon-button { flex-shrink: 0; display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--color-line); border-radius: 50%; color: var(--color-indigo); background: transparent; }
+.icon-button:hover { background: var(--color-paper); border-color: var(--color-indigo); }
+.add-work-tile { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; margin-top: 1.2rem; padding: 1.6rem; border: 1px dashed var(--color-line-strong); border-radius: 7px; color: var(--color-indigo); font-weight: 600; }
+.add-work-tile > span { font-size: 1.5rem; line-height: 1; }
+.add-work-tile > small { font-weight: 400; }
+.add-work-tile:hover { background: var(--color-card); border-color: var(--color-indigo); }
+.profile-dialog { width: min(650px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); margin: auto; padding: clamp(1.25rem, 4vw, 2rem); border: 1px solid var(--color-line); border-radius: 12px; color: var(--color-ink); background: var(--color-card); box-shadow: 0 24px 100px #1d1b172b; overflow-y: auto; overscroll-behavior: contain; }
+.profile-dialog::backdrop { background: #17162270; backdrop-filter: blur(3px); }
+.dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-line); margin-bottom: 1.4rem; }
+.dialog-heading .meta { margin: 0 0 .4rem; }
+.dialog-heading h2 { font-size: 1.8rem; margin: 0; }
+.dialog-heading .icon-button { font-size: 1.6rem; }
+.profile-dialog .stack { margin-bottom: 0; }
+.dialog-delete { margin-top: 1.5rem; border-top: 1px solid var(--color-line); padding-top: .75rem; }
+.work-source { border: 0; margin: 0; padding: 0; }
+.work-source legend { font-size: .95rem; font-weight: 550; margin-bottom: .6rem; }
+.work-upload { border: 1px dashed var(--color-line-strong); padding: 1rem; border-radius: 5px; background: var(--color-paper); }
+.work-upload input[type="file"] { max-width: 100%; padding: .5rem 0; border: 0; background: transparent; font-size: .85rem; }
+.public-profile > .back-link { display: inline-block; margin-bottom: 1.8rem; font-size: .86rem; }
+.public-profile-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 30%); gap: 2.5rem; align-items: center; padding-bottom: 2.2rem; border-bottom: 1px solid var(--color-line); margin-bottom: 2.5rem; }
+.public-profile-heading .profile-intro { margin: 0; align-items: flex-start; }
+.public-profile-heading h1 { font-size: clamp(2rem, 5vw, 3.4rem); }
+.public-profile-heading .profile-intro > div { min-width: 0; }
+.public-profile-heading .profile-intro > div > p:not(.meta) { margin: .5rem 0; }
+.public-profile-heading .social-links { margin-bottom: 0; }
+.profile-contact { border-left: 1px solid var(--color-line); padding-left: 1.5rem; }
+.profile-contact p { font-size: .95rem; }
+.profile-contact small { display: block; font-size: .78rem; line-height: 1.55; }
+.external-profile-link { font-size: .85rem; overflow-wrap: anywhere; }
+.public-about { margin: 3rem 0; max-width: 700px; }
+.public-about .meta { margin-bottom: .3rem; }
+.public-about h2 { margin-top: .3rem; }
+.public-about > .pre { line-height: 1.8; }
+.public-finished { border-top: 1px solid var(--color-line); padding-top: 2.3rem; }
+.gallery-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: .2rem 0 1rem; }
+.gallery-toolbar > .muted { font-size: .8rem; color: var(--color-muted); }
+.view-switch { display: inline-flex; width: fit-content; max-width: 100%; padding: 3px; border: 1px solid var(--color-line); background: var(--color-paper); border-radius: 6px; gap: 2px; }
+.view-switch > button { display: inline-flex; justify-content: center; align-items: center; gap: .4rem; padding: .5rem .8rem; min-height: 38px; border-radius: 4px; font-size: .8rem; color: var(--color-muted); white-space: nowrap; }
+.view-switch > button[aria-pressed="true"] { background: var(--color-card); color: var(--color-indigo); box-shadow: 0 1px 3px #1d1b1715; font-weight: 600; }
+.view-switch > button:hover { color: var(--color-indigo); }
+.work-gallery .portfolio-gallery { margin-top: 0; border-radius: 8px; }
+.work-gallery .portfolio-stage { aspect-ratio: 16/10; min-height: 0; max-height: 640px; }
+.work-gallery .portfolio-stage > img, .work-gallery .portfolio-stage > video { min-height: 0; max-width: 100%; max-height: 640px; height: 100%; object-fit: contain; }
+.work-gallery .portfolio-media { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem; padding: 1.5rem; width: 100%; min-width: 0; text-align: center; }
+.work-gallery .portfolio-media .media-symbol { font-size: 3rem; line-height: 1.2; color: var(--color-indigo); }
+.work-gallery .portfolio-media audio { width: min(100%, 440px); max-width: 100%; height: 42px; }
+.work-gallery .portfolio-media > span:not(.media-symbol) { font-family: var(--font-serif); font-size: 1.25rem; }
+.work-gallery .portfolio-caption { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.25rem; }
+.work-gallery .portfolio-caption > div:first-child { min-width: 0; }
+.work-gallery .portfolio-caption strong { display: block; font-size: .95rem; overflow-wrap: anywhere; }
+.work-gallery .portfolio-caption small { display: block; font-size: .78rem; margin-top: .25rem; }
+.work-gallery .gallery-controls { display: flex; align-items: center; gap: .65rem; flex-shrink: 0; }
+.work-gallery .gallery-controls span { font-size: .78rem; font-variant-numeric: tabular-nums; color: var(--color-muted); }
+.work-gallery .gallery-controls button, .gallery-expand { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--color-line); border-radius: 50%; color: var(--color-indigo); flex-shrink: 0; }
+.work-gallery .gallery-controls button:hover, .gallery-expand:hover { background: var(--color-paper); }
+.work-gallery .portfolio-thumbs { display: flex; overflow-x: auto; flex-wrap: nowrap; gap: .6rem; padding: .25rem 1.25rem 1.25rem; scrollbar-width: thin; }
+.work-gallery .portfolio-thumbs > button { flex-shrink: 0; width: 80px; height: 60px; padding: 0; background: var(--color-sunk); border: 2px solid transparent; border-radius: 4px; overflow: hidden; }
+.work-gallery .portfolio-thumbs > button.selected { border-color: var(--color-indigo); }
+.work-gallery .portfolio-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+.work-gallery .portfolio-thumbs > button > span { display: grid; place-items: center; width: 100%; height: 100%; color: var(--color-indigo); font-size: 1.3rem; }
+.portfolio-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; }
+.portfolio-grid-item { border: 1px solid var(--color-line); border-radius: 7px; background: var(--color-card); overflow: hidden; min-width: 0; }
+.work-gallery .portfolio-grid .portfolio-stage { aspect-ratio: 4/3; }
+.portfolio-grid .portfolio-caption { padding: .9rem 1rem; }
+@media (max-width: 760px) {
+  .portfolio-manager-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-profile-heading { grid-template-columns: 1fr; gap: 1.5rem; }
+  .profile-contact { border-left: 0; border-top: 1px solid var(--color-line); padding: 1.25rem 0 0; }
+  .profile-tabs { gap: 1.2rem; }
+  .profile-tabs > a { font-size: .83rem; }
+}
+@media (max-width: 520px) {
+  .profile-page-heading { gap: .8rem; margin-bottom: 1.4rem; }
+  .profile-role { font-size: .72rem; }
+  .profile-panel { padding: 1.2rem; }
+  .profile-shell .section-heading { flex-wrap: wrap; }
+  .profile-shell .section-heading > .button { padding-block: .55rem; }
+  .profile-form-grid { grid-template-columns: 1fr; gap: 1.1rem; }
+  .profile-details > div { grid-template-columns: 1fr; gap: .4rem; }
+  .profile-read-intro { gap: 1rem; }
+  .profile-read-intro .profile-avatar, .profile-read-intro .profile-avatar-placeholder { width: 68px; height: 68px; font-size: 2rem; }
+  .profile-read-intro h3 { font-size: 1.3rem; }
+  .profile-read-intro p { font-size: .78rem; }
+  .photo-editor-row { gap: 1rem; }
+  .photo-editor .profile-avatar, .photo-editor .profile-avatar-placeholder { width: 84px; height: 84px; }
+  .photo-editor-copy .text-button + .text-button { margin-left: .65rem; }
+  .portfolio-manager-grid, .portfolio-grid { grid-template-columns: 1fr; }
+  .profile-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); padding: 1.2rem; }
+  .dialog-heading h2 { font-size: 1.5rem; }
+  .public-profile-heading .profile-intro { gap: 1rem; }
+  .public-profile-heading .profile-avatar, .public-profile-heading .profile-avatar-placeholder { width: 72px; height: 72px; font-size: 2.1rem; }
+  .public-profile-heading h1 { font-size: 2rem; }
+  .public-profile-heading .profile-intro .meta { font-size: .72rem; }
+  .work-gallery .portfolio-caption { align-items: flex-start; padding: 1rem; gap: .6rem; }
+  .work-gallery .portfolio-caption strong { font-size: .85rem; }
+  .work-gallery .gallery-controls { gap: .35rem; }
+  .work-gallery .gallery-controls button { width: 36px; height: 36px; }
+  .work-gallery .portfolio-media { padding: 1rem; gap: .6rem; }
+  .work-gallery .portfolio-media .media-symbol { font-size: 2rem; }
+  .work-gallery .portfolio-media > span:not(.media-symbol) { font-size: 1rem; }
+}

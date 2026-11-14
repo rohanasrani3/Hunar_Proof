@@ -1,4 +1,5 @@
 import "server-only";
+import { sampleCover } from "@/lib/sample-media";
 
 /**
  * Sample marketplace data. Only this trusted backend module designates
@@ -8,7 +9,7 @@ import "server-only";
  *
  * Product rules (AGENTS.md): samples are marked "Sample data" on public pages,
  * are read-only, cannot sign in (empty password hash, login requires sample=0),
- * and are excluded from rankings and impact totals.
+ * and are included in pilot rankings and impact totals with clear sample labels.
  *
  * Inserts are idempotent (ON CONFLICT DO NOTHING) and run on local SQLite,
  * or on PostgreSQL when KAREGHAR_SEED_SAMPLES=1.
@@ -141,5 +142,33 @@ export async function seedSamples(query: Query) {
       "INSERT INTO commissions(id,customer,form,title,brief,fee,status,artist,sample,created) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1,$9) ON CONFLICT DO NOTHING",
       [c.id, c.customer, c.form, c.title, c.brief, c.fee, c.status, c.artist ?? null, i + 1],
     );
+  }
+
+  // Upgrade only trusted sample records. Old seeds become a complete pilot
+  // journey, while real data and existing sample identities remain untouched.
+  for (const a of SAMPLE_ACCOUNTS) {
+    await query("UPDATE accounts SET bio=$1,contact=$2 WHERE id=$3 AND sample=1", [
+      a.role === "artist" ? "A fictional artist profile demonstrating the KareGhar pilot. Explore the sample portfolio to see how artists share their work." : "A fictional customer account demonstrating how businesses commission work on KareGhar.",
+      a.id + "@example.invalid", a.id,
+    ]);
+  }
+  const originals: SampleCommission[] = [
+    { id: "demo-mural", customer: "demo-customer", form: "warli", title: "", brief: "", fee: 8000, status: "done", artist: "demo-artist" },
+    { id: "demo-jingle", customer: "demo-customer", form: "marathi-folk", title: "", brief: "", fee: 3000, status: "progress", artist: "demo-musician" },
+    { id: "demo-print", customer: "demo-customer", form: "block-print", title: "", brief: "", fee: 4500, status: "finding" },
+  ];
+  const music = new Set(["marathi-folk", "baul", "hindustani", "carnatic"]);
+  const dance = new Set(["lavani", "kathak", "bharatanatyam", "kathputli"]);
+  const craft = new Set(["block-print", "terracotta", "handloom", "chikankari", "kalamkari"]);
+  for (const [i, c] of [...originals, ...SAMPLE_COMMISSIONS].entries()) {
+    const created = Date.UTC(2025, 0, 1) + i * 86400000;
+    const outputType = music.has(c.form) ? "audio" : dance.has(c.form) ? "live" : craft.has(c.form) ? "physical" : "image";
+    const output = c.status === "done" ? music.has(c.form) ? tune(c.form) : sampleCover(c.form) ?? "" : "";
+    await query(`UPDATE commissions SET original_fee=fee,output_type=$1,created=$2,updated=$3,
+      selected_at=$4,submitted_at=$5,accepted_at=$6,output=$7,published=$8 WHERE id=$9 AND sample=1`, [
+      outputType, created, created + (c.status === "done" ? 604800000 : c.status === "progress" ? 86400000 : 0),
+      c.artist ? created + 86400000 : 0, c.status === "done" ? created + 518400000 : 0,
+      c.status === "done" ? created + 604800000 : 0, output, c.status === "done" ? 1 : 0, c.id,
+    ]);
   }
 }

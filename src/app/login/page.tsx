@@ -4,12 +4,13 @@ import { language } from "@/i18n/language";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string; changed?: string }>;
+  searchParams: Promise<{ created?: string; changed?: string; onboarding?: string; deleted?: string }>;
 }) {
   const { t, lang } = await language(),
     params = await searchParams;
   return (
-    <section className="narrow">
+    <section className="auth-page">
+      <p className="eyebrow">{t("Welcome back", "फिर से स्वागत है")}</p>
       <h1>{t("Log in", "लॉग इन")}</h1>
       {params.created && (
         <p>
@@ -27,7 +28,8 @@ export default async function Page({
           )}
         </p>
       )}
-      <Login hi={lang === "hi"} />
+      {params.deleted && <p role="status">{t("Your account has been deleted and you have been signed out.", "आपका खाता हटा दिया गया है और आप लॉग आउट हो गए हैं।")}</p>}
+      <Login hi={lang === "hi"} onboarding={params.onboarding === "artist"} />
       <Link href="/signup">{t("Create an account", "नया खाता बनाएँ")}</Link>
     </section>
   );

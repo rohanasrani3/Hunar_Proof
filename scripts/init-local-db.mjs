@@ -14,6 +14,14 @@ export function initializeLocalDb(db) {
           .split("-- PostgreSQL privileges")[0]
           .replace("BEGIN;", ""),
       );
+    if (!db.prepare("PRAGMA table_info(accounts)").all().some((column) => column.name === "bio"))
+      db.exec(
+        readFileSync("migrations/004_experience.sql", "utf8")
+          .split("-- PostgreSQL privileges")[0]
+          .replace("BEGIN;", ""),
+      );
+    if (!db.prepare("PRAGMA table_info(commissions)").all().some((column) => column.name === "deadline"))
+      db.exec(readFileSync("migrations/005_deadline.sql", "utf8").split("-- PostgreSQL privileges")[0].replace("BEGIN;", ""));
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");

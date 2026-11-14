@@ -11,16 +11,18 @@ type Stats = {
   fees: number;
   finding: number;
   progress: number;
+  samples: number;
 };
 export default async function Page() {
   const [{ t, lang }, [s]] = await Promise.all([
     language(),
     query<Stats>(`SELECT COUNT(*) AS posted,
-    COUNT(CASE WHEN status='done' THEN 1 END) AS done,
-    COUNT(DISTINCT CASE WHEN status='done' THEN artist END) AS artists,
-    COUNT(DISTINCT customer) AS customers, COALESCE(SUM(CASE WHEN status='done' THEN fee ELSE 0 END),0) AS fees,
+    COUNT(CASE WHEN status='done' AND output<>'' THEN 1 END) AS done,
+    COUNT(DISTINCT CASE WHEN status='done' AND output<>'' THEN artist END) AS artists,
+    COUNT(DISTINCT customer) AS customers, COALESCE(SUM(CASE WHEN status='done' AND output<>'' THEN fee ELSE 0 END),0) AS fees,
+    COUNT(CASE WHEN sample=1 THEN 1 END) AS samples,
     COUNT(CASE WHEN status='finding' THEN 1 END) AS finding, COUNT(CASE WHEN status='progress' THEN 1 END) AS progress
-    FROM commissions WHERE sample=0`),
+    FROM commissions`),
   ]);
   const money = (n: number) => "₹" + Number(n).toLocaleString("en-IN");
   const completion = Number(s.posted)
@@ -28,7 +30,7 @@ export default async function Page() {
     : 0;
   const totals = [
     [
-      t("Earned by artists", "कलाकारों की कमाई"),
+      t("Accepted work value", "स्वीकृत कार्य का मूल्य"),
       money(s.fees),
       t(
         "The agreed fees for work customers have accepted. Payments take place directly between the customer and artist.",
@@ -39,8 +41,8 @@ export default async function Page() {
       t("Commissions completed", "पूर्ण कमीशन"),
       s.done,
       t(
-        "A commission counts once the customer accepts the finished work.",
-        "ग्राहक के तैयार कार्य स्वीकार करने पर कमीशन गिना जाता है।",
+        "A commission counts once finished work is submitted and the customer accepts it.",
+        "तैयार कार्य जमा होने और ग्राहक द्वारा स्वीकार किए जाने पर कमीशन गिना जाता है।",
       ),
     ],
     [
@@ -62,16 +64,17 @@ export default async function Page() {
   ] as const;
   return (
     <>
-      <p className="meta">{t("Impact", "प्रभाव")}</p>
+      <p className="eyebrow">{t("The work, in numbers", "काम, आँकड़ों में")}</p>
       <h1>
         {t("What the pilot has done so far", "पायलट की अब तक की उपलब्धियाँ")}
       </h1>
-      <p>
+      <p className="page-lead">
         {t(
-          "Figures update from commission records and exclude sample data.",
-          "आँकड़े कमीशन रिकॉर्ड से अपडेट होते हैं और नमूना डेटा को बाहर रखते हैं।",
+          "A shared picture of the briefs, collaborations, and finished work in our community.",
+          "हमारे समुदाय के अनुरोधों, सहयोग और तैयार कार्यों की एक साझा तस्वीर।",
         )}
       </p>
+      {Number(s.samples) > 0 && <aside className="pilot-note"><span className="sample">{t("Pilot · Sample data included", "पायलट · नमूना डेटा शामिल")}</span><p>{t("These totals include fictional examples to show how KareGhar works. Sample fees illustrate commission value; they are not real earnings or verified payments.", "इन आँकड़ों में KareGhar को समझाने के लिए काल्पनिक उदाहरण शामिल हैं। नमूना शुल्क कमीशन का मूल्य दिखाते हैं; वे वास्तविक आय या सत्यापित भुगतान नहीं हैं।")}</p></aside>}
       <dl className="impact-totals">
         {totals.map(([label, value]) => (
           <div key={label}>

@@ -33,7 +33,7 @@ export function DirectoryTile({
         </h2>
         {children}
         <div className="tile-footer">{footer}</div>
-        <Link href={href}>{action} →</Link>
+        <Link className="tile-action" href={href}>{action} <span aria-hidden="true">↗</span></Link>
       </div>
     </article>
   );

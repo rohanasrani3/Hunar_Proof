@@ -68,7 +68,7 @@ export async function viewer(): Promise<Account | null> {
   return (
     (
       await query<Account>(
-        "SELECT id,name,email,username,effective_role AS role,company,links,photo,revision,sample,session_version FROM account_state WHERE id=$1 AND session_version=$2 AND suspended=0",
+        "SELECT id,name,email,username,effective_role AS role,company,links,photo,bio,contact,deleted,revision,sample,session_version FROM account_state WHERE id=$1 AND session_version=$2 AND suspended=0",
         [session.accountId, session.revision],
       )
     )[0] ?? null

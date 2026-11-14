@@ -17,8 +17,9 @@ export default async function RootLayout({
   return (
     <html lang={lang}>
       <body>
+        <a href="#main-content" className="skip-link">{lang === "hi" ? "मुख्य सामग्री पर जाएँ" : "Skip to content"}</a>
         <SiteHeader />
-        <main className="shell content">{children}</main>
+        <main id="main-content" className="shell content">{children}</main>
         <SiteFooter />
         <AuthNotice hi={lang === "hi"} />
       </body>

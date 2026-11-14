@@ -31,7 +31,7 @@ export function AuthNotice({ hi }: { hi: boolean }) {
     <button type="button" onClick={() => setNotice(null)} aria-label={hi ? "संदेश बंद करें" : "Dismiss message"}>×</button>
   </div>;
 }
-export function Login({ hi }: { hi: boolean }) {
+export function Login({ hi, onboarding = false }: { hi: boolean; onboarding?: boolean }) {
   const [error, setError] = useState(false),
     [pending, setPending] = useState(false);
   return (
@@ -50,7 +50,7 @@ export function Login({ hi }: { hi: boolean }) {
           });
           if (result?.ok) {
             sessionStorage.setItem("kareghar-auth-notice", "login");
-            window.location.assign("/");
+            window.location.assign(onboarding ? "/profile?tab=portfolio&onboarding=1" : "/");
           }
           else setError(true);
         } catch {
@@ -74,7 +74,7 @@ export function Login({ hi }: { hi: boolean }) {
         />
       </label>
       <button className="button" disabled={pending}>
-        {hi ? "लॉग इन करें" : "Log in"}
+        {pending ? (hi ? "लॉग इन हो रहा है…" : "Logging in…") : (hi ? "लॉग इन करें" : "Log in")}
       </button>
       {error && (
         <p role="alert">

@@ -4,10 +4,14 @@ KareGhar connects customers commissioning work with artists. The tagline is “E
 
 ## Product rules
 
-- Public signup creates exactly one customer or artist role per username. Email is private. Profiles expose name, optional company, external links and optional photo.
+- Public signup creates exactly one customer or artist role per username. Login email is private. Profiles expose name, optional company, bio, explicitly supplied public contact, external links and optional photo.
 - Customers post briefs. Artists send one private proposal per brief. Only the customer may select a proposer, accept submitted work and publish or hide the finished output. Finding → In-progress → Done. Finishing a job and publishing its output are independent decisions.
-- Count accepted Done commissions for overall, category and per-form rankings, including private completions. Exclude sample accounts and sample commissions from ranks and impact. Tied artists share a rank. Zero completions have no displayed rank.
+- Count accepted Done commissions with a nonempty finished submission for overall, category and per-form rankings, including private completions. Pilot sample records count toward rankings and impact and retain their sample tags; never describe fictional fees as verified earnings. Tied artists share a rank. Zero completions have no displayed rank. Adding ordinary portfolio entries does not increase rank.
 - Only trusted backend code designates sample records. Mark sample artists and briefs on public pages. Generated briefs are read-only.
+- Public commission discovery shows open and completed work, not work in progress. Hide the current user's own listings; route their work and proposals through private History. History messages and proposal quotations are visible only to the customer and the relevant artist; never add an admin override.
+- Artists choose the offered fee or a custom quotation and may edit an active proposal for 15 minutes after creation. Both proposal and selection require contact-before-work acknowledgment. Selection locks the agreed quote. Customers may cancel a selection before acceptance, preserving its audit trail and reopening the brief.
+- Commission output format is required; reference image is optional. Reference media follows the brief's visibility. Submitted and archived cancelled outputs remain participant-only until explicitly published. Finished work displays inline.
+- Account deletion requires the current password and typed DELETE confirmation. Block deletion during active work; anonymize the account and invalidate sessions while retaining counterpart commission history. Public discovery and login exclude deleted accounts.
 - Existing categories are stable. Artists add new forms by adding portfolio work. Both discovery pages use the same catalogue and dependent filters.
 - English/Hindi is a site-wide cookie preference. Localize interface text, including form feedback. Preserve authored text. Impact shows the pipeline and accepted commission value.
 
@@ -15,7 +19,7 @@ KareGhar connects customers commissioning work with artists. The tagline is “E
 
 Next.js 15 App Router, React 19, TypeScript, Tailwind 4 and Zod. Use Node 24 for local SQLite. Run npm ci, npm run lint and npm run build inside firstship. See README.md for deployment settings. Never commit credentials or local accounts/uploads. Keep cloud data in Supabase PostgreSQL and a private Supabase Storage bucket. Render is the planned pilot host. Target zero recurring cost within provider quotas.
 
-Smoke-test signup for both roles, private proposals, owner-only selection, media before and after publication, and rankings after acceptance. Verify category/form filters, both languages, photo updates, session invalidation, and sample exclusions. Use separate browser sessions for a customer, an artist and a visitor.
+Smoke-test signup for both roles, private proposals and quotations, owner-only selection/cancellation, participant-only messages, media before and after publication, and rankings after acceptance of a finished submission. Verify category/form filters and reset, both languages, photo updates/removal, cancelable profile editing, portfolio editing, deletion/session invalidation, and clearly tagged sample inclusion. Use separate sessions for a customer, an artist and a visitor. KAREGHAR_DATA_DIR may isolate local QA data from the default .kareghar directory.
 
 ## Contract and function index
 
@@ -32,16 +36,16 @@ Signatures below describe the callable application boundaries. UI page component
 | server/auth.authOptions | Credentials provider, JWT and session callbacks | Verify Argon2id, limit attempts per username, carry immutable account ID and password revision. |
 | server/auth.viewer | () → current Account or null | Check session identity and revision against the stored account on every protected operation. |
 | server/market.forms | () → Form[] | Read ordered live forms for both directories, posts and portfolio entry. |
-| server/market.artists | optional category/form → Artist[] | Rank by eligible accepted commissions; include portfolio and completed-form matches. |
+| server/market.artists | optional category/form → Artist[] | Order by accepted commissions with finished submissions, including samples; include portfolio and completed-form matches. Calculate shared ranks before hiding the viewer's own artist card. |
 | server/market.commissions | filters?, id?, viewerId? → Commission[] | Public discovery and scoped detail with explicit output visibility. Only pass a server-authenticated viewer ID. |
 | server/market.publicProfile | username → public account fields or undefined | Public profile without email, credentials or session state. |
 | server/market.works, publishedWorks | artist ID → portfolio works or published commissioned works | Public profile galleries. |
 | server/market.proposals | commission ID, authenticated account ID → proposal rows | Customer sees all proposals on their own brief; an artist sees their own. |
 | server/actions.register | previous state, FormData(username,email,name,role,password) → feedback or login redirect | Create account with database-enforced uniqueness. |
-| server/actions.updateProfile | state, FormData(name,email,company,social_* fields,linksExtra,photo?) → feedback | Update the current account; validate platform URLs, preserved legacy links and image content. Legacy links textarea submissions remain accepted. |
+| server/actions.updateProfile | state, FormData(name,email,company,bio,contact,social_* fields,linksExtra,photo?,removePhoto?) → feedback | Update the current account; validate platform URLs, preserved legacy links and image content. Legacy links textarea submissions remain accepted. |
 | server/actions.changePassword | state, FormData(current,password) → feedback or login redirect | Verify current password, replace hash and invalidate existing sessions. |
-| server/actions.addWork | state, FormData(title,url,category,formName) → feedback | Resolve or add a form, attach portfolio work to the signed-in artist. |
-| server/actions.postCommission | state, FormData(title,brief,category,form,otherForm?,fee) → feedback or detail redirect | Resolve the selected form or register an Other form in the selected category, then publish a customer brief in Finding. |
+| server/actions.addWork / updateWork / deleteWork | state, FormData(id?,title,url?,file?,category,formName) → feedback | Resolve or add a form and create, edit or remove only the current artist's portfolio work. Uploaded media is validated and managed by the server. |
+| server/actions.postCommission | state, FormData(title,brief,category,form,otherForm?,fee,output_type,deadline,reference?) → feedback or history redirect | Resolve the selected form or register an Other form, validate required deadline and reference image, publish a customer brief and record its initial event. |
 | server/actions.commissionAction | state, FormData(id,action,action-specific fields) → feedback | Apply a role-, owner- and state-guarded proposal, selection, submission, acceptance or visibility update. See docs/API.md. |
 | server/media.saveMedia | File, photo boolean → private key or null | Verify file signature and size; store in private Supabase bucket or local demo folder. |
 | server/media.removeMedia, mediaResponse | key → cleanup or Response | Remove unreferenced media or return authorized bytes with private cache headers. |
@@ -53,6 +57,11 @@ Signatures below describe the callable application boundaries. UI page component
 | components/CommissionFormFields | catalogue, language → category/form fields | Show dependent art forms and an Other name field on the post form. |
 | components/PortfolioGallery | portfolio items, language → media viewer | Show image, audio, video or link work in-page with thumbnails and previous/next controls. |
 | components/SocialLinks, socialKey | saved URLs → icons and platform key | Render recognizable transparent social icons and validate matching platform URLs. |
+| contract/output-types | OUTPUT_TYPES, OutputType | Bilingual output labels and format-specific brief guidance. |
+| server/db.transaction | callback(Query) → result | Atomic workflow updates with events and serialized local SQLite operations. |
+| server/history.history / historyDetail / unreadCount | authenticated viewer ID (+ commission ID for detail) → private history / detail / unread count | Scoped proposals, dates, agreed prices, events, messages and notifications. Never accept a browser-supplied viewer ID. |
+| server/history-actions.sendMessage / markHistoryRead | state, FormData → feedback | Send only to an existing participant thread; explicitly acknowledge read events through a mutation. |
+| server/actions.deleteAccount | state, FormData(current,confirm) → feedback or login redirect | Verify password, block active work, anonymize account, remove portfolio and invalidate sessions. |
 
 Profile and impact pages also use narrow read queries for the signed-in user's commissions and aggregate pipeline counts respectively. Authenticated mutations never trust a role, owner ID, sample flag or private media key supplied by a browser.
 
@@ -71,7 +80,7 @@ Public signup always validates customer/artist. A backend-only admin grant suppl
 
 The account_state view derives the effective role, suspension and session version. Each audit event changes the target's session version. commission_state derives paused from both participants. The unique global moderation sequence serializes conflicting decisions. A valid active admin other than the target must exist at the time of a suspension, preserving the last active admin.
 
-Both discovery directories use DirectoryTile(href, title, cover?, formLabel, children, footer, action) for artwork-first tiles. Real briefs show only published media or the form label. The specific-form filter is disabled until a category is selected. Impact retains its four totals, pipeline, average fee, completion rate, counting methodology and artist-directory link. Calculate all metrics from non-sample commissions.
+Both discovery directories use DirectoryTile(href, title, cover?, formLabel, children, footer, action) for artwork-first tiles. Real briefs show a supplied reference image, published media, or the form label. The specific-form filter is disabled until a category is selected. Clear filters resets every selection. Impact retains its four totals, pipeline, average fee, completion rate, counting methodology and artist-directory link. Include pilot samples and explain that their value is fictional.
 Usernames preserve case at signup, admin provisioning and login. Passwords for signup and password changes must contain 6–128 characters.
-A successful credentials login sends every role to the homepage (/). The header provides access to profile and moderation.
+A normal credentials login sends every role to the homepage (/). Newly registered artists are guided to /profile?tab=portfolio&onboarding=1. The header provides access to the profile, portfolio, private History with unread count, security, and admin moderation.
 Production build and start use .next-production; development uses .next so a dev process cannot overwrite assets served by the production server.

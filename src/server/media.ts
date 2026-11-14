@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
+const mediaDirectory = () => join(process.env.KAREGHAR_DATA_DIR || ".kareghar", "media");
 const formats = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -49,8 +50,8 @@ export async function saveMedia(file: File, photo: boolean) {
     });
     if (!response.ok) throw Error("Media upload failed");
   } else {
-    await mkdir(".kareghar/media", { recursive: true });
-    await writeFile(join(".kareghar/media", key), bytes);
+    await mkdir(mediaDirectory(), { recursive: true });
+    await writeFile(join(mediaDirectory(), key), bytes);
   }
   return key;
 }
@@ -60,7 +61,7 @@ export async function removeMedia(key: string) {
     const { url, headers } = remote(key);
     const result = await fetch(url, { method: "DELETE", headers });
     if (!result.ok) throw Error("Media cleanup failed");
-  } else await unlink(join(".kareghar/media", key));
+  } else await unlink(join(mediaDirectory(), key));
 }
 export async function mediaResponse(key: string) {
   const type = formats[key.split(".").pop() as Extension];
@@ -79,7 +80,7 @@ export async function mediaResponse(key: string) {
     return new Response(response.body, { headers });
   }
   return new Response(
-    new Uint8Array(await readFile(join(".kareghar/media", key))),
+    new Uint8Array(await readFile(join(mediaDirectory(), key))),
     { headers },
   );
 }

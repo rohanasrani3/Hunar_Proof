@@ -24,6 +24,8 @@ export const profileSchema = z.object({
   email,
   company: z.string().trim().max(120),
   links: z.array(web).max(8),
+  bio: z.string().trim().max(2000).default(""),
+  contact: z.string().trim().max(240).default(""),
 });
 export const commissionSchema = z.object({
   title: short,
@@ -32,6 +34,8 @@ export const commissionSchema = z.object({
   category,
   otherForm: z.string().max(120).optional(),
   fee: z.coerce.number().int().min(0).max(100000000),
+  output_type: z.enum(["audio", "video", "live", "physical", "image", "other"]),
+  deadline: z.iso.date(),
 });
 export type Role = z.infer<typeof role>;
 export interface Account {
@@ -46,6 +50,9 @@ export interface Account {
   session_version: number;
   sample: number;
   revision: number;
+  bio: string;
+  contact: string;
+  deleted: number;
 }
 export interface Form {
   id: string;
@@ -68,6 +75,33 @@ export interface Commission {
   paused: number;
   published: number;
   output: string;
+  output_type: "audio" | "video" | "live" | "physical" | "image" | "other";
+  reference: string;
+  deadline: string;
+  original_fee: number;
+  created: number;
+  updated: number;
+  selected_at: number;
+  submitted_at: number;
+  accepted_at: number;
+  customer_contact: string;
+  artist_name: string | null;
+  artist_username: string | null;
+  artist_contact: string | null;
+}
+export interface Proposal {
+  id: string;
+  artist: string;
+  name: string;
+  username: string;
+  contact: string;
+  message: string;
+  quote: number;
+  initial_quote: number;
+  pricing: "offered" | "quote";
+  created: number;
+  updated: number;
+  status: "active" | "cancelled";
 }
 export interface Work {
   id: string;
